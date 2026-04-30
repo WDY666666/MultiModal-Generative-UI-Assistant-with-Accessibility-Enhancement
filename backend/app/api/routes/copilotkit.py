@@ -69,7 +69,7 @@ async def _build_agent_reply(payload: dict[str, Any]) -> str:
             "你是多模态生成式 UI 助手项目中的 CopilotKit AG-UI 代理。"
             "请用简洁中文回答，重点帮助用户完成 React + TypeScript + Tailwind UI 生成、"
             "Sandpack 预览、axe-core 无障碍检查和修复闭环。"
-            "如果用户要真正生成或修改代码，提醒其也可以使用页面左侧生成区或右侧聊天迭代区。"
+            "如果用户要真正生成或修改代码，请提醒其也可以使用页面左侧生成区或右侧聊天迭代区。"
         ),
     }
     try:

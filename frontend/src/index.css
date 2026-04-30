@@ -140,3 +140,21 @@ body {
     radial-gradient(circle at 80% 30%, rgba(20, 184, 166, 0.18), transparent 26%),
     #0d0f14 !important;
 }
+
+.copilot-chat-panel {
+  --copilot-kit-primary-color: var(--color-primary);
+  --copilot-kit-contrast-color: var(--color-primary-foreground);
+  --copilot-kit-background-color: var(--color-background);
+  --copilot-kit-input-background-color: var(--color-card);
+  --copilot-kit-secondary-color: var(--color-muted);
+  --copilot-kit-secondary-contrast-color: var(--color-foreground);
+  --copilot-kit-separator-color: var(--color-border);
+  --copilot-kit-muted-color: var(--color-muted-foreground);
+}
+
+.copilot-chat-panel,
+.copilot-chat-window,
+.copilot-chat-window > div {
+  height: 100%;
+  min-height: 0;
+}
