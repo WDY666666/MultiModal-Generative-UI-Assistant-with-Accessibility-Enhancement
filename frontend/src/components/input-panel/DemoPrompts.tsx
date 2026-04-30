@@ -1,4 +1,4 @@
-import { DEMO_PROMPTS } from '@/lib/constants'
+﻿import { DEMO_PROMPTS } from '@/lib/constants'
 import { useAppStore } from '@/stores/useAppStore'
 
 export function DemoPrompts() {

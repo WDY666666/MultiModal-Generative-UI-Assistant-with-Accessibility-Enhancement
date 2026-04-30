@@ -1,4 +1,4 @@
-import { Sparkles, Loader2, AlertCircle } from 'lucide-react'
+﻿import { Sparkles, Loader2, AlertCircle } from 'lucide-react'
 import { useAppStore } from '@/stores/useAppStore'
 
 export function GenerateButton() {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Copy, Check, Download, FileDown } from 'lucide-react'
 import { useAppStore } from '@/stores/useAppStore'
 
@@ -61,7 +61,6 @@ export function CodeViewer() {
       { name: 'tsconfig.json', content: `{\n  "compilerOptions": {\n    "target": "ES2020",\n    "useDefineForClassFields": true,\n    "lib": ["ES2020", "DOM", "DOM.Iterable"],\n    "module": "ESNext",\n    "skipLibCheck": true,\n    "moduleResolution": "bundler",\n    "allowImportingTsExtensions": true,\n    "isolatedModules": true,\n    "moduleDetection": "force",\n    "noEmit": true,\n    "jsx": "react-jsx",\n    "strict": true\n  },\n  "include": ["src"]\n}` },
     ]
 
-    // 逐个下载文件（浏览器限制无法直接创建 zip）
     files.forEach((file, i) => {
       setTimeout(() => {
         const blob = new Blob([file.content], { type: 'text/plain' })

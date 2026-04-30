@@ -1,4 +1,4 @@
-export const API_BASE_URL = '/api'
+﻿export const API_BASE_URL = '/api'
 
 export const DEFAULT_GENERATED_CODE = `export default function App() {
   return (
@@ -10,10 +10,10 @@ export const DEFAULT_GENERATED_CODE = `export default function App() {
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          多模态生成式UI助手
+          多模态生成式 UI 助手
         </h1>
         <p className="text-gray-500 mb-6">
-          输入自然语言描述或上传手绘草图，AI 帮你快速生成可访问的 React 组件
+          输入自然语言描述或上传手绘草图，AI 帮你快速生成可访问的 React 组件。
         </p>
         <div className="flex flex-wrap justify-center gap-2 text-xs">
           <span className="px-3 py-1 bg-white rounded-full text-gray-600 shadow-sm">React + Tailwind</span>
@@ -26,9 +26,9 @@ export const DEFAULT_GENERATED_CODE = `export default function App() {
 }`
 
 export const DEMO_PROMPTS = [
-  '创建一个现代风格的登录页面，包含邮箱和密码输入框，登录按钮，以及忘记密码链接，使用卡片式布局居中显示',
+  '创建一个现代风格的登录页面，包含邮箱和密码输入框、登录按钮以及忘记密码链接，使用卡片式布局居中显示',
   '设计一个在线教育仪表盘，左侧导航栏显示课程分类，右侧显示学习进度环形图、课程卡片列表和今日任务',
   '生成一个电商产品卡片组件，包含产品图片占位区、名称、价格、五星评分、数量选择器和加入购物车按钮',
-  '创建一个响应式导航栏，左侧Logo，中间菜单项（首页、产品、关于），右侧搜索框和用户头像下拉菜单',
-  '设计一个数据可视化仪表盘，顶部显示4个统计卡片（总用户、活跃用户、收入、转化率），下方是折线图区域',
+  '创建一个响应式导航栏，左侧 Logo，中间菜单项（首页、产品、关于），右侧搜索框和用户头像下拉菜单',
+  '设计一个数据可视化仪表盘，顶部显示 4 个统计卡片（总用户、活跃用户、收入、转化率），下方是折线图区域',
 ]

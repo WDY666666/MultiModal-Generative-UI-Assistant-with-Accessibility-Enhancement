@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { ChevronDown, AlertTriangle, AlertCircle, Info, Zap } from 'lucide-react'
 import { api } from '@/services/api'
 import { useAppStore } from '@/stores/useAppStore'
@@ -30,7 +30,7 @@ export function A11yIssue({ issue }: A11yIssueProps) {
       const response = await api.fix({ issue, currentCode: generatedCode })
       updateGeneratedCode(response.fixCode)
     } catch {
-      // error handled silently
+      // The report stays visible so the user can retry.
     } finally {
       setIsFixing(false)
     }

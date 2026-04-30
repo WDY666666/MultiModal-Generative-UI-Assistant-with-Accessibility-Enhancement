@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+﻿import { useEffect, useCallback } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
 import { api } from '@/services/api'
 import type { A11yResults, A11yIssue } from '@/types'
@@ -50,7 +50,6 @@ export function useA11yScan() {
       setA11yResults(results)
       setIsScanning(false)
 
-      // 请求 LLM 解释每个问题
       if (violations.length > 0) {
         try {
           const explained = await Promise.all(
@@ -72,7 +71,7 @@ export function useA11yScan() {
           )
           setA11yResults({ ...results, violations: explained })
         } catch {
-          // 解释失败不影响主流程
+          // Explanation failures should not block the main scanning flow.
         }
       }
     },
@@ -99,7 +98,6 @@ export function useA11yScan() {
     if (iframe?.contentWindow) {
       iframe.contentWindow.postMessage({ type: 'RUN_AXE_SCAN' }, '*')
     } else {
-      // iframe 未就绪，延迟重试
       setTimeout(() => {
         const retryIframe = document.querySelector('.sp-preview-iframe') as HTMLIFrameElement
         if (retryIframe?.contentWindow) {

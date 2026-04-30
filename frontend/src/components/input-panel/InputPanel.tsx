@@ -1,4 +1,4 @@
-import { TextInput } from './TextInput'
+﻿import { TextInput } from './TextInput'
 import { ImageUpload } from './ImageUpload'
 import { GenerateButton } from './GenerateButton'
 import { DemoPrompts } from './DemoPrompts'
@@ -9,7 +9,7 @@ export function InputPanel() {
       <div>
         <h2 className="text-sm font-semibold text-foreground mb-1">输入描述</h2>
         <p className="text-xs text-muted-foreground">
-          描述你想要的UI，或上传手绘草图
+          描述你想要的 UI，或上传手绘草图/参考截图。
         </p>
       </div>
 

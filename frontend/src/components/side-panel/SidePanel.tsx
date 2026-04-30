@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { ChatWindow } from './ChatWindow'
 import { A11yReport } from './A11yReport'
 import { MessageSquare, Shield } from 'lucide-react'

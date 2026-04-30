@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+﻿import { useCallback, useState } from 'react'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import { useAppStore } from '@/stores/useAppStore'
 import { api } from '@/services/api'
@@ -66,6 +66,7 @@ export function ImageUpload() {
           <button
             onClick={removeImage}
             className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+            aria-label="移除参考图片"
           >
             <X className="w-3.5 h-3.5" />
           </button>

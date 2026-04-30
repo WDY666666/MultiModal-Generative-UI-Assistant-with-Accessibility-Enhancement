@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 import { useAppStore } from '@/stores/useAppStore'
 import { ChatMessage } from './ChatMessage'
@@ -32,7 +32,7 @@ export function ChatWindow() {
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {chatMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-            生成UI后，可通过对话迭代修改
+            生成 UI 后，可通过对话继续迭代修改。
           </div>
         ) : (
           chatMessages.map((msg) => (
@@ -55,7 +55,7 @@ export function ChatWindow() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="输入修改指令，如：把按钮改成蓝色..."
+            placeholder="输入修改指令，如：把主按钮改成蓝色..."
             className="flex-1 h-9 rounded-md border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
             disabled={isChatLoading}
           />
@@ -63,6 +63,7 @@ export function ChatWindow() {
             onClick={handleSend}
             disabled={!input.trim() || isChatLoading}
             className="h-9 w-9 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="发送修改指令"
           >
             <Send className="w-4 h-4" />
           </button>
