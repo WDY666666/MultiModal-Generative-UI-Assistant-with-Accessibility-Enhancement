@@ -1,6 +1,7 @@
 ﻿import { useCopilotAction, useCopilotReadable } from '@copilotkit/react-core'
 import { api } from '@/services/api'
-import { extractCodeFromResponse } from '@/lib/utils'
+import { extractCodeFromResponse, isPreviewableReactCode } from '@/lib/utils'
+import { DEFAULT_GENERATED_CODE } from '@/lib/constants'
 import { useAppStore } from '@/stores/useAppStore'
 import type { A11yIssue } from '@/types'
 
@@ -62,7 +63,8 @@ export function CopilotActions() {
 
         try {
           const response = await api.generate({ prompt: normalizedPrompt })
-          const code = extractCodeFromResponse(response.code)
+          const candidateCode = extractCodeFromResponse(response.code)
+          const code = isPreviewableReactCode(candidateCode) ? candidateCode : DEFAULT_GENERATED_CODE
           updateGeneratedCode(code, response.css)
           addChatMessages([
             { role: 'user', content: normalizedPrompt },
@@ -109,8 +111,15 @@ export function CopilotActions() {
             currentCode: generatedCode,
             chatHistory: chatMessages,
           })
-          const code = extractCodeFromResponse(response.code)
-          updateGeneratedCode(code, response.css)
+          const candidateCode = extractCodeFromResponse(response.code)
+          if (!isPreviewableReactCode(candidateCode)) {
+            addChatMessages([
+              { role: 'assistant', content: '模型这次没有返回完整可预览代码，已保留当前预览。' },
+            ])
+            return 'The model did not return previewable code, so the current preview was kept.'
+          }
+
+          updateGeneratedCode(candidateCode, response.css)
           addChatMessages([
             { role: 'assistant', content: response.reply || 'CopilotKit action 已更新代码，请在预览区查看效果。' },
           ])
@@ -150,6 +159,10 @@ export function CopilotActions() {
         try {
           const response = await api.fix({ issue, currentCode: generatedCode })
           const code = extractCodeFromResponse(response.fixCode)
+          if (!isPreviewableReactCode(code)) {
+            return `Accessibility fix for ${id} did not return previewable code, so the current preview was kept.`
+          }
+
           updateGeneratedCode(code, response.css)
           addChatMessages([
             { role: 'assistant', content: `已通过 CopilotKit action 修复无障碍问题：${issue.help}` },

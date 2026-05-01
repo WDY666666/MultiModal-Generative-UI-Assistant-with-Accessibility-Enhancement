@@ -29,3 +29,17 @@ export function extractCodeFromResponse(text: string): string {
   }
   return text.trim()
 }
+
+export function isPreviewableReactCode(code: string): boolean {
+  const normalized = code.trim()
+  if (normalized.length < 120 || !normalized.includes('export default')) {
+    return false
+  }
+
+  const hasJsx = /<[A-Za-z][\w.-]*(?:\s|>|\/)/.test(normalized) || normalized.includes('<>')
+  const hasComponent =
+    /(?:function|const)\s+[A-Z][A-Za-z0-9_]*/.test(normalized) ||
+    /export\s+default\s+(?:function|\(\s*\)|[A-Z][A-Za-z0-9_]*)/.test(normalized)
+
+  return hasJsx && hasComponent
+}

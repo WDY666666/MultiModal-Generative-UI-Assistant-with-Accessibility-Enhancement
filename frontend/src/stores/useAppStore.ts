@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/services/api'
-import { fileToBase64, generateId, extractCodeFromResponse } from '@/lib/utils'
+import { fileToBase64, generateId, extractCodeFromResponse, isPreviewableReactCode } from '@/lib/utils'
 import { DEFAULT_GENERATED_CODE, DEFAULT_PREVIEW_CSS } from '@/lib/constants'
 import type { ChatMessage, A11yResults } from '@/types'
 
@@ -97,11 +97,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         prompt: fullPrompt,
         imageBase64,
       })
-      const code = extractCodeFromResponse(response.code)
-
-      if (!code) {
-        throw new Error('模型没有返回可预览的代码')
-      }
+      const candidateCode = extractCodeFromResponse(response.code)
+      const code = isPreviewableReactCode(candidateCode) ? candidateCode : DEFAULT_GENERATED_CODE
+      const assistantContent = isPreviewableReactCode(candidateCode)
+        ? response.explanation || '代码已生成，请在预览区查看效果。'
+        : '模型这次没有返回完整可预览代码，已显示本地兜底预览，建议换一个更具体的描述后重试。'
 
       set({
         generatedCode: code,
@@ -111,7 +111,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         a11yResults: null,
         chatMessages: appendMessages(get().chatMessages, [
           { role: 'user', content: textPrompt },
-          { role: 'assistant', content: response.explanation || '代码已生成，请在预览区查看效果。' },
+          { role: 'assistant', content: assistantContent },
         ]),
       })
     } catch (error) {
@@ -139,19 +139,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         currentCode: generatedCode,
         chatHistory: [...chatMessages, userMsg],
       })
-      const code = extractCodeFromResponse(response.code)
-
-      if (!code) {
-        throw new Error('模型没有返回可预览的代码')
-      }
+      const candidateCode = extractCodeFromResponse(response.code)
+      const code = isPreviewableReactCode(candidateCode) ? candidateCode : ''
+      const nextCode = code || generatedCode || DEFAULT_GENERATED_CODE
+      const reply = code
+        ? response.reply
+        : '模型这次没有返回完整可预览代码，已保留当前预览。请换一个更具体的修改指令重试。'
 
       set({
-        generatedCode: code,
+        generatedCode: nextCode,
         generatedCss: response.css || get().generatedCss,
         isChatLoading: false,
         a11yResults: null,
         chatMessages: appendMessages(get().chatMessages, [
-          { role: 'assistant', content: response.reply || '代码已更新，请在预览区查看效果。' },
+          { role: 'assistant', content: reply || '代码已更新，请在预览区查看效果。' },
         ]),
       })
     } catch (error) {

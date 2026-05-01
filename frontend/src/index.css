@@ -159,11 +159,18 @@ body {
   min-height: 0;
 }
 
-/* The right panel already hosts CopilotChat, so the floating CopilotKit
-   dev/launcher affordances are hidden to keep the demo canvas clean. */
+/* The right panel hosts a project-controlled CopilotKit workspace chat, so
+   floating CopilotKit launchers/news banners stay hidden for a clean demo. */
 .copilotKitDevConsole,
 .copilotKitPopup,
 .copilotKitSidebar,
-.copilotKitButton {
+.copilotKitButton,
+cpk-web-inspector,
+.announcement-preview,
+.announcement-preview__arrow,
+[class*="copilotKit"][class*="Banner"],
+[class*="copilotKit"][class*="Launcher"],
+[class*="copilotKit"][class*="Popup"],
+[class*="copilotKit"][class*="Button"] {
   display: none !important;
 }

@@ -21,6 +21,22 @@ def _strip_code_fence(text: str) -> str:
     return (match.group(1) if match else text).strip()
 
 
+def _is_previewable_code(code: str) -> bool:
+    normalized = code.strip()
+    if len(normalized) < 120:
+        return False
+
+    if "export default" not in normalized:
+        return False
+
+    has_jsx = bool(re.search(r"<[A-Za-z][\w.-]*(?:\s|>|/)", normalized) or "<>" in normalized)
+    has_component = bool(
+        re.search(r"(?:function|const)\s+[A-Z][A-Za-z0-9_]*", normalized)
+        or re.search(r"export\s+default\s+(?:function|\(\s*\)|[A-Z][A-Za-z0-9_]*)", normalized)
+    )
+    return has_jsx and has_component
+
+
 def _has_risky_classname_template(code: str) -> bool:
     if code.count("`") % 2 != 0:
         return True
@@ -126,6 +142,10 @@ def _needs_syntax_repair(code: str) -> bool:
         _has_risky_classname_template(code)
         or _has_tsx_syntax_error(code)
     )
+
+
+def _is_safe_previewable_code(code: str) -> bool:
+    return _is_previewable_code(code) and not _needs_syntax_repair(code)
 
 
 async def _repair_syntax_if_needed(code: str, fallback_code: str | None = None) -> str:
@@ -332,22 +352,22 @@ async def generate_code(req: GenerateRequest):
             image_description = result["description"]
 
         messages = build_generate_prompt(req.prompt, image_description)
+        fallback_code = build_fallback_code(req.prompt)
         code = _strip_code_fence(await chat_completion(messages, temperature=0.35))
 
-        if _looks_unusable(code, req.prompt):
+        if not _is_previewable_code(code) or _looks_unusable(code, req.prompt):
             retry_messages = _with_strict_retry_instruction(messages, req.prompt)
             code = _strip_code_fence(await chat_completion(retry_messages, temperature=0.2))
 
-        code = await _repair_syntax_if_needed(code, fallback_code=build_fallback_code(req.prompt))
+        code = await _repair_syntax_if_needed(code, fallback_code=fallback_code)
 
-        if _looks_unusable(code, req.prompt):
-            fallback_code = build_fallback_code(req.prompt)
-            if not _needs_syntax_repair(fallback_code):
+        if not _is_previewable_code(code) or _needs_syntax_repair(code) or _looks_unusable(code, req.prompt):
+            if _is_safe_previewable_code(fallback_code):
                 code = fallback_code
             else:
                 raise HTTPException(
                     status_code=502,
-                    detail="模型返回了占位或偏题代码，请检查当前模型/接口配置后重试。",
+                    detail="模型和本地兜底都没有返回可预览代码，请检查当前模型/接口配置后重试。",
                 )
 
         return GenerateResponse(

@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { ChevronDown, AlertTriangle, AlertCircle, Info, Zap } from 'lucide-react'
 import { api } from '@/services/api'
+import { extractCodeFromResponse, isPreviewableReactCode } from '@/lib/utils'
 import { useAppStore } from '@/stores/useAppStore'
 import type { A11yIssue as A11yIssueType } from '@/types'
 
@@ -28,7 +29,10 @@ export function A11yIssue({ issue }: A11yIssueProps) {
     setIsFixing(true)
     try {
       const response = await api.fix({ issue, currentCode: generatedCode })
-      updateGeneratedCode(response.fixCode, response.css)
+      const code = extractCodeFromResponse(response.fixCode)
+      if (isPreviewableReactCode(code)) {
+        updateGeneratedCode(code, response.css)
+      }
     } catch {
       // The report stays visible so the user can retry.
     } finally {
