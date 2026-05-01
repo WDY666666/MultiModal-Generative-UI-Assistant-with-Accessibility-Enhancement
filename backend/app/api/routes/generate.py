@@ -8,6 +8,7 @@ from app.schemas.response import GenerateResponse
 from app.services.llm_service import chat_completion
 from app.services.prompt_builder import build_generate_prompt, build_syntax_repair_prompt
 from app.services.image_service import analyze_image
+from app.services.fallback_templates import build_fallback_code
 
 router = APIRouter()
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
@@ -122,23 +123,30 @@ process.stdin.on("end", () => {
 def _needs_syntax_repair(code: str) -> bool:
     return (
         _has_risky_classname_template(code)
-        or _has_basic_unbalanced_strings(code)
         or _has_tsx_syntax_error(code)
     )
 
 
-async def _repair_syntax_if_needed(code: str) -> str:
+async def _repair_syntax_if_needed(code: str, fallback_code: str | None = None) -> str:
     if not _needs_syntax_repair(code):
         return code
 
-    repaired = await chat_completion(
-        build_syntax_repair_prompt(code),
-        temperature=0.1,
-        max_tokens=4096,
-    )
+    try:
+        repaired = await chat_completion(
+            build_syntax_repair_prompt(code),
+            temperature=0.1,
+            max_tokens=4096,
+        )
+    except Exception:
+        if fallback_code and not _needs_syntax_repair(fallback_code):
+            return fallback_code
+        return code
+
     repaired_code = _strip_code_fence(repaired)
     if _needs_syntax_repair(repaired_code):
-        raise HTTPException(status_code=502, detail="Generated TSX still has syntax errors. Please retry.")
+        if fallback_code and not _needs_syntax_repair(fallback_code):
+            return fallback_code
+        return code
     return repaired_code
 
 
@@ -329,13 +337,17 @@ async def generate_code(req: GenerateRequest):
             retry_messages = _with_strict_retry_instruction(messages, req.prompt)
             code = _strip_code_fence(await chat_completion(retry_messages, temperature=0.2))
 
-        code = await _repair_syntax_if_needed(code)
+        code = await _repair_syntax_if_needed(code, fallback_code=build_fallback_code(req.prompt))
 
         if _looks_unusable(code, req.prompt):
-            raise HTTPException(
-                status_code=502,
-                detail="模型返回了占位或偏题代码，请检查当前模型/接口配置后重试。",
-            )
+            fallback_code = build_fallback_code(req.prompt)
+            if not _needs_syntax_repair(fallback_code):
+                code = fallback_code
+            else:
+                raise HTTPException(
+                    status_code=502,
+                    detail="模型返回了占位或偏题代码，请检查当前模型/接口配置后重试。",
+                )
 
         return GenerateResponse(
             code=code,

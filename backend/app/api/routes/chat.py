@@ -4,6 +4,7 @@ from app.schemas.response import ChatResponse
 from app.services.llm_service import chat_completion
 from app.services.prompt_builder import build_chat_prompt
 from app.api.routes.generate import _repair_syntax_if_needed, _strip_code_fence
+from app.services.fallback_templates import build_fallback_code
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ async def chat_iteration(req: ChatRequest):
             req.current_code,
         )
         code = _strip_code_fence(await chat_completion(messages))
-        code = await _repair_syntax_if_needed(code)
+        code = await _repair_syntax_if_needed(code, fallback_code=build_fallback_code(req.message))
 
         return ChatResponse(
             code=code,
