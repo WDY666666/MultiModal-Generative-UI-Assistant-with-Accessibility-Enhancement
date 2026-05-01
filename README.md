@@ -1,4 +1,4 @@
-﻿# 多模态生成式 UI 助手 —— 带包容性增强
+# 多模态生成式 UI 助手 —— 带包容性增强
 
 一个面向前端原型开发和毕设演示的 Generative UI Web 应用。用户可以通过自然语言描述和可选参考图片，生成可运行的 React + TypeScript + Tailwind 页面/组件，并在浏览器中实时预览、聊天迭代、自动进行无障碍检查与修复建议生成。
 
@@ -38,7 +38,7 @@
 | 无障碍检查 | `axe-core` |
 | 状态管理 | Zustand |
 | 后端 | Python + FastAPI |
-| 模型接口 | OpenAI-compatible API，默认支持 Ollama |
+| 模型接口 | OpenAI-compatible API，默认使用 token-plan-cn / mimo-v2.5-pro |
 
 ## 快速启动
 
@@ -56,20 +56,15 @@ pip install -r requirements.txt
 
 复制 `backend/.env.example` 为 `backend/.env`，或直接使用环境变量。
 
-本地 Ollama 推荐配置：
+当前项目统一使用 token-plan-cn 的 OpenAI-compatible 接口：
 
 ```env
-OPENAI_API_KEY=ollama
-OPENAI_BASE_URL=http://localhost:11434/v1
-OPENAI_MODEL=qwen2.5-coder:7b
+OPENAI_API_KEY=your-token-plan-api-key
+OPENAI_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1
+OPENAI_MODEL=mimo-v2.5-pro
 ```
 
-如使用 Ollama：
-
-```bash
-ollama pull qwen2.5-coder:7b
-ollama serve
-```
+注意：真实 `OPENAI_API_KEY` 只放在本地 `backend/.env` 中，`.env` 已被 `.gitignore` 忽略，不要提交到 GitHub。
 
 ### 3. 启动项目
 

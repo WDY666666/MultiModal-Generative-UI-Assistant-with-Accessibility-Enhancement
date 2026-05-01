@@ -77,7 +77,7 @@ async def _build_agent_reply(payload: dict[str, Any]) -> str:
     try:
         return await chat_completion([system_message, *messages], temperature=0.4, max_tokens=1024)
     except Exception:
-        return "CopilotKit Runtime 已连接，但当前 LLM/Ollama 服务不可用。请先确认 Ollama 已启动并已拉取配置的模型。"
+        return "CopilotKit Runtime 已连接，但当前 Mimo 模型服务不可用。请先确认 token-plan-cn 接口配置正确且模型可用。"
 
 
 async def _stream_agent_run(payload: dict[str, Any]) -> AsyncIterator[str]:
