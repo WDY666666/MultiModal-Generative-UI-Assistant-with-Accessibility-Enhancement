@@ -2,8 +2,8 @@
 from app.schemas.request import ChatRequest
 from app.schemas.response import ChatResponse
 from app.services.llm_service import chat_completion
-from app.services.prompt_builder import build_chat_prompt, build_syntax_repair_prompt
-from app.api.routes.generate import _has_risky_classname_template, _strip_code_fence
+from app.services.prompt_builder import build_chat_prompt
+from app.api.routes.generate import _repair_syntax_if_needed, _strip_code_fence
 
 router = APIRouter()
 
@@ -16,15 +16,7 @@ async def chat_iteration(req: ChatRequest):
             req.current_code,
         )
         code = _strip_code_fence(await chat_completion(messages))
-
-        if _has_risky_classname_template(code):
-            code = _strip_code_fence(
-                await chat_completion(
-                    build_syntax_repair_prompt(code),
-                    temperature=0.1,
-                    max_tokens=4096,
-                )
-            )
+        code = await _repair_syntax_if_needed(code)
 
         return ChatResponse(
             code=code,

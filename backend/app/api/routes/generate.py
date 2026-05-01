@@ -1,4 +1,6 @@
-﻿import re
+import re
+import subprocess
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from app.schemas.request import GenerateRequest
@@ -8,6 +10,8 @@ from app.services.prompt_builder import build_generate_prompt, build_syntax_repa
 from app.services.image_service import analyze_image
 
 router = APIRouter()
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
 
 
 def _strip_code_fence(text: str) -> str:
@@ -27,8 +31,104 @@ def _has_risky_classname_template(code: str) -> bool:
     )
 
 
+def _has_basic_unbalanced_strings(code: str) -> bool:
+    active_string: str | None = None
+    escaped = False
+    in_line_comment = False
+    in_block_comment = False
+
+    for index, char in enumerate(code):
+        next_char = code[index + 1] if index + 1 < len(code) else ""
+
+        if in_line_comment:
+            if char == "\n":
+                in_line_comment = False
+            continue
+
+        if in_block_comment:
+            if char == "*" and next_char == "/":
+                in_block_comment = False
+            continue
+
+        if char == "/" and next_char == "/":
+            in_line_comment = True
+            continue
+
+        if char == "/" and next_char == "*":
+            in_block_comment = True
+            continue
+
+        if escaped:
+            escaped = False
+            continue
+
+        if active_string and char == "\\":
+            escaped = True
+            continue
+
+        if active_string:
+            if char == active_string:
+                active_string = None
+            continue
+
+        if char in {"'", '"', "`"}:
+            active_string = char
+
+    return active_string is not None
+
+
+def _has_tsx_syntax_error(code: str) -> bool:
+    node_script = r"""
+const path = require("path");
+const ts = require(path.join(process.cwd(), "node_modules", "typescript"));
+let source = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", chunk => source += chunk);
+process.stdin.on("end", () => {
+  const result = ts.transpileModule(source, {
+    fileName: "App.tsx",
+    reportDiagnostics: true,
+    compilerOptions: {
+      jsx: ts.JsxEmit.ReactJSX,
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.ESNext,
+      esModuleInterop: true,
+    },
+  });
+  const errors = (result.diagnostics || []).filter(
+    diagnostic => diagnostic.category === ts.DiagnosticCategory.Error
+  );
+  if (errors.length > 0) {
+    console.error(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, "\n")).join("\n"));
+    process.exit(1);
+  }
+});
+"""
+    try:
+        result = subprocess.run(
+            ["node", "-e", node_script],
+            input=code,
+            text=True,
+            cwd=FRONTEND_DIR,
+            capture_output=True,
+            timeout=8,
+            check=False,
+        )
+        return result.returncode != 0
+    except Exception:
+        return _has_basic_unbalanced_strings(code)
+
+
+def _needs_syntax_repair(code: str) -> bool:
+    return (
+        _has_risky_classname_template(code)
+        or _has_basic_unbalanced_strings(code)
+        or _has_tsx_syntax_error(code)
+    )
+
+
 async def _repair_syntax_if_needed(code: str) -> str:
-    if not _has_risky_classname_template(code):
+    if not _needs_syntax_repair(code):
         return code
 
     repaired = await chat_completion(
@@ -36,7 +136,10 @@ async def _repair_syntax_if_needed(code: str) -> str:
         temperature=0.1,
         max_tokens=4096,
     )
-    return _strip_code_fence(repaired)
+    repaired_code = _strip_code_fence(repaired)
+    if _needs_syntax_repair(repaired_code):
+        raise HTTPException(status_code=502, detail="Generated TSX still has syntax errors. Please retry.")
+    return repaired_code
 
 
 def _class_blocks(code: str) -> list[tuple[str, str]]:

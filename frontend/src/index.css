@@ -158,3 +158,12 @@ body {
   height: 100%;
   min-height: 0;
 }
+
+/* The right panel already hosts CopilotChat, so the floating CopilotKit
+   dev/launcher affordances are hidden to keep the demo canvas clean. */
+.copilotKitDevConsole,
+.copilotKitPopup,
+.copilotKitSidebar,
+.copilotKitButton {
+  display: none !important;
+}
