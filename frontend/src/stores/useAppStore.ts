@@ -1,7 +1,7 @@
-﻿import { create } from 'zustand'
+import { create } from 'zustand'
 import { api } from '@/services/api'
 import { fileToBase64, generateId, extractCodeFromResponse } from '@/lib/utils'
-import { DEFAULT_GENERATED_CODE } from '@/lib/constants'
+import { DEFAULT_GENERATED_CODE, DEFAULT_PREVIEW_CSS } from '@/lib/constants'
 import type { ChatMessage, A11yResults } from '@/types'
 
 interface AppState {
@@ -11,6 +11,7 @@ interface AppState {
   imageDescription: string
 
   generatedCode: string
+  generatedCss: string
   isGenerating: boolean
   generationError: string | null
 
@@ -27,7 +28,8 @@ interface AppState {
   sendMessage: (message: string) => Promise<void>
   setA11yResults: (results: A11yResults) => void
   setIsScanning: (scanning: boolean) => void
-  updateGeneratedCode: (code: string) => void
+  updateGeneratedCode: (code: string, css?: string) => void
+  setGeneratedCss: (css: string) => void
   addChatMessages: (messages: Omit<ChatMessage, 'id' | 'timestamp'>[]) => void
   setGenerationError: (error: string | null) => void
   setIsGenerating: (isGenerating: boolean) => void
@@ -52,6 +54,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   imageDescription: '',
 
   generatedCode: DEFAULT_GENERATED_CODE,
+  generatedCss: DEFAULT_PREVIEW_CSS,
   isGenerating: false,
   generationError: null,
 
@@ -102,6 +105,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({
         generatedCode: code,
+        generatedCss: response.css || DEFAULT_PREVIEW_CSS,
         isGenerating: false,
         generationError: null,
         a11yResults: null,
@@ -143,6 +147,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({
         generatedCode: code,
+        generatedCss: response.css || get().generatedCss,
         isChatLoading: false,
         a11yResults: null,
         chatMessages: appendMessages(get().chatMessages, [
@@ -161,7 +166,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setA11yResults: (results) => set({ a11yResults: results }),
   setIsScanning: (scanning) => set({ isScanning: scanning }),
-  updateGeneratedCode: (code) => set({ generatedCode: code, a11yResults: null }),
+  updateGeneratedCode: (code, css) =>
+    set((state) => ({
+      generatedCode: code,
+      generatedCss: css ?? state.generatedCss,
+      a11yResults: null,
+    })),
+  setGeneratedCss: (css) => set({ generatedCss: css }),
   addChatMessages: (messages) =>
     set({ chatMessages: appendMessages(get().chatMessages, messages) }),
   setGenerationError: (error) => set({ generationError: error }),

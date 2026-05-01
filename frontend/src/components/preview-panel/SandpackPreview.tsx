@@ -1,4 +1,4 @@
-﻿import {
+import {
   SandpackLayout,
   SandpackPreview as SandpackFrame,
   SandpackProvider,
@@ -24,16 +24,6 @@ const HTML_CODE = `<!DOCTYPE html>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Generated UI</title>
-    <script>
-      tailwind = {
-        config: {
-          theme: {
-            extend: {}
-          }
-        }
-      }
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body>
     <div id="root"></div>
@@ -95,16 +85,17 @@ function normalizePreviewCode(code: string) {
 
 export function SandpackPreview() {
   const generatedCode = useAppStore((s) => s.generatedCode)
+  const generatedCss = useAppStore((s) => s.generatedCss)
   const previewCode = useMemo(() => normalizePreviewCode(generatedCode), [generatedCode])
   const files = useMemo(
     () => ({
       '/App.tsx': { code: previewCode, active: true },
       '/index.tsx': { code: INDEX_CODE, hidden: true },
       '/public/index.html': { code: HTML_CODE, hidden: true },
-      '/styles.css': { code: CSS_CODE, hidden: true },
+      '/styles.css': { code: generatedCss || CSS_CODE, hidden: true },
       '/package.json': { code: PACKAGE_JSON, hidden: true },
     }),
-    [previewCode]
+    [generatedCss, previewCode]
   )
 
   return (

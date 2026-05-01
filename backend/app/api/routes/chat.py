@@ -5,6 +5,7 @@ from app.services.llm_service import chat_completion
 from app.services.prompt_builder import build_chat_prompt
 from app.api.routes.generate import _repair_syntax_if_needed, _strip_code_fence
 from app.services.fallback_templates import build_fallback_code
+from app.services.tailwind_service import compile_tailwind_css
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ async def chat_iteration(req: ChatRequest):
 
         return ChatResponse(
             code=code,
+            css=compile_tailwind_css(code),
             reply="已根据你的指令修改代码，请在预览区查看效果。",
         )
     except Exception as e:

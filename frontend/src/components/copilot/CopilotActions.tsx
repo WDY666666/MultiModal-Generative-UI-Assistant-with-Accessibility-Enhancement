@@ -63,7 +63,7 @@ export function CopilotActions() {
         try {
           const response = await api.generate({ prompt: normalizedPrompt })
           const code = extractCodeFromResponse(response.code)
-          updateGeneratedCode(code)
+          updateGeneratedCode(code, response.css)
           addChatMessages([
             { role: 'user', content: normalizedPrompt },
             { role: 'assistant', content: response.explanation || 'CopilotKit action 已生成代码，请在预览区查看效果。' },
@@ -110,7 +110,7 @@ export function CopilotActions() {
             chatHistory: chatMessages,
           })
           const code = extractCodeFromResponse(response.code)
-          updateGeneratedCode(code)
+          updateGeneratedCode(code, response.css)
           addChatMessages([
             { role: 'assistant', content: response.reply || 'CopilotKit action 已更新代码，请在预览区查看效果。' },
           ])
@@ -150,7 +150,7 @@ export function CopilotActions() {
         try {
           const response = await api.fix({ issue, currentCode: generatedCode })
           const code = extractCodeFromResponse(response.fixCode)
-          updateGeneratedCode(code)
+          updateGeneratedCode(code, response.css)
           addChatMessages([
             { role: 'assistant', content: `已通过 CopilotKit action 修复无障碍问题：${issue.help}` },
           ])

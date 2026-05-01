@@ -9,6 +9,7 @@ from app.services.llm_service import chat_completion
 from app.services.prompt_builder import build_generate_prompt, build_syntax_repair_prompt
 from app.services.image_service import analyze_image
 from app.services.fallback_templates import build_fallback_code
+from app.services.tailwind_service import compile_tailwind_css
 
 router = APIRouter()
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
@@ -351,6 +352,7 @@ async def generate_code(req: GenerateRequest):
 
         return GenerateResponse(
             code=code,
+            css=compile_tailwind_css(code),
             explanation="代码已生成" + ("，已结合图片分析结果" if image_description else ""),
         )
     except HTTPException:

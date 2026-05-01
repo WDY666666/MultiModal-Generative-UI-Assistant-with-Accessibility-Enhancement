@@ -4,6 +4,7 @@ from app.schemas.response import FixResponse
 from app.services.a11y_service import generate_fix
 from app.api.routes.generate import _repair_syntax_if_needed, _strip_code_fence
 from app.services.fallback_templates import build_fallback_code
+from app.services.tailwind_service import compile_tailwind_css
 
 router = APIRouter()
 
@@ -22,6 +23,7 @@ async def fix_issue(req: FixRequest):
             _strip_code_fence(result["fixCode"]),
             fallback_code=build_fallback_code(issue_description),
         )
+        result["css"] = compile_tailwind_css(result["fixCode"])
         return FixResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

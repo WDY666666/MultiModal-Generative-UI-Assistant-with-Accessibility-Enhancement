@@ -28,7 +28,7 @@ export function A11yIssue({ issue }: A11yIssueProps) {
     setIsFixing(true)
     try {
       const response = await api.fix({ issue, currentCode: generatedCode })
-      updateGeneratedCode(response.fixCode)
+      updateGeneratedCode(response.fixCode, response.css)
     } catch {
       // The report stays visible so the user can retry.
     } finally {

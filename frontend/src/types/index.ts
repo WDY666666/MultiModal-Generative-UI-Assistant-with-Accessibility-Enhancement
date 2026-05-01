@@ -34,6 +34,7 @@ export interface GenerateRequest {
 export interface GenerateResponse {
   code: string
   explanation?: string
+  css?: string
 }
 
 export interface AnalyzeImageRequest {
@@ -54,6 +55,7 @@ export interface ChatRequest {
 export interface ChatResponse {
   code: string
   reply: string
+  css?: string
 }
 
 export interface FixRequest {
@@ -64,4 +66,5 @@ export interface FixRequest {
 export interface FixResponse {
   fixCode: string
   explanation: string
+  css?: string
 }

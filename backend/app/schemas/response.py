@@ -9,6 +9,7 @@ class ApiModel(BaseModel):
 class GenerateResponse(ApiModel):
     code: str
     explanation: Optional[str] = None
+    css: Optional[str] = None
 
 
 class AnalyzeImageResponse(ApiModel):
@@ -19,8 +20,10 @@ class AnalyzeImageResponse(ApiModel):
 class ChatResponse(ApiModel):
     code: str
     reply: str
+    css: Optional[str] = None
 
 
 class FixResponse(ApiModel):
     fix_code: str = Field(alias="fixCode")
     explanation: str
+    css: Optional[str] = None

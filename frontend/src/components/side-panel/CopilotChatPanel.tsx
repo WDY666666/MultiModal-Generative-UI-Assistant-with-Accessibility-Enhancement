@@ -4,6 +4,8 @@ const copilotInstructions = `
 你是“多模态生成式 UI 助手”的 CopilotKit 助手。
 请始终使用简洁中文回答，帮助用户完成 React + TypeScript + Tailwind 页面生成、界面迭代和无障碍修复。
 你可以参考当前应用通过 useCopilotReadable 暴露的 prompt、生成代码预览、图片解析结果和 axe-core 无障碍扫描结果。
+不要要求用户重复粘贴当前代码；除非用户主动要求视觉诊断，也不要要求用户再上传界面截图。
+注意：你当前不能直接“看见”Sandpack iframe 里的像素级截图，只能读取应用显式暴露的文本状态、代码摘要和无障碍扫描结果。
 当用户需要生成页面、修改当前 UI 或修复无障碍问题时，优先说明你会使用页面中注册的 CopilotKit actions：
 generateAccessibleReactUI、iterateGeneratedUI、fixAccessibilityIssue。
 如果运行环境暂时不能自动调用 action，请明确提示用户也可以切换到“聊天迭代”标签页完成同样操作。
@@ -35,7 +37,8 @@ export function CopilotChatPanel() {
           title: 'CopilotKit 助手',
           initial: [
             '我是接入 CopilotKit 的应用内助手，可以读取当前生成状态、无障碍扫描结果，并协助调用生成/迭代/修复动作。',
-            '为了保证 Demo 稳定，旁边的“聊天迭代”仍保留为可靠执行通道；这里用于展示更标准的 CopilotKit 交互入口。',
+            '我目前不会自动读取预览截图的像素内容；如果要做到“看图自动识别界面”，需要再接入截图采集 + 视觉模型分析链路。',
+            '为了保证 Demo 稳定，“聊天迭代”仍保留为可靠执行通道；这里用于展示更标准的 CopilotKit 交互入口。',
           ],
           placeholder: '输入生成、迭代或无障碍修复需求...',
           error: 'CopilotKit 对话暂时不可用，请确认后端 /api/copilotkit 和 Ollama/LLM 服务已启动。',
