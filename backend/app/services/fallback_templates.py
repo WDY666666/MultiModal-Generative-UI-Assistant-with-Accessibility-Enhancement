@@ -7,27 +7,27 @@ LOGIN_FALLBACK_CODE = """export default function App() {
       <section className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-6 py-8 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="hidden lg:block">
           <p className="mb-4 inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-sm font-medium text-cyan-100">
-            Secure education workspace
+            Secure workspace access
           </p>
           <h1 className="max-w-xl text-4xl font-bold tracking-tight text-white">
-            登录你的学习控制台，继续今天的课程进度
+            Sign in to continue your work
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">
-            卡片式登录页已包含邮箱、密码、忘记密码链接、键盘焦点状态和高对比度按钮，适合直接作为可访问原型继续迭代。
+            Accessible login fallback with clear labels, keyboard focus states, and balanced contrast.
           </p>
 
-          <div className="mt-8 grid max-w-lg grid-cols-3 gap-3" aria-label="平台优势">
+          <div className="mt-8 grid max-w-lg grid-cols-3 gap-3" aria-label="Platform highlights">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-xl shadow-black/20">
-              <p className="text-2xl font-bold text-white">98%</p>
-              <p className="mt-1 text-xs text-slate-300">课程完成率</p>
+              <p className="text-2xl font-bold text-white">99.9%</p>
+              <p className="mt-1 text-xs text-slate-300">Uptime</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-xl shadow-black/20">
               <p className="text-2xl font-bold text-white">AA</p>
-              <p className="mt-1 text-xs text-slate-300">无障碍目标</p>
+              <p className="mt-1 text-xs text-slate-300">Accessibility</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-xl shadow-black/20">
-              <p className="text-2xl font-bold text-white">24h</p>
-              <p className="mt-1 text-xs text-slate-300">安全监测</p>
+              <p className="text-2xl font-bold text-white">24/7</p>
+              <p className="mt-1 text-xs text-slate-300">Monitoring</p>
             </div>
           </div>
         </div>
@@ -41,14 +41,14 @@ LOGIN_FALLBACK_CODE = """export default function App() {
               </svg>
             </div>
             <div>
-              <h2 id="login-title" className="text-2xl font-bold text-white">欢迎回来</h2>
-              <p className="text-sm text-slate-300">使用邮箱和密码登录账户</p>
+              <h2 id="login-title" className="text-2xl font-bold text-white">Welcome back</h2>
+              <p className="text-sm text-slate-300">Use your email and password to sign in</p>
             </div>
           </div>
 
           <div className="space-y-5">
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-100">邮箱地址</label>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-100">Email address</label>
               <input
                 id="email"
                 name="email"
@@ -61,9 +61,9 @@ LOGIN_FALLBACK_CODE = """export default function App() {
 
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-100">密码</label>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-100">Password</label>
                 <a href="#" className="text-sm font-medium text-cyan-200 underline-offset-4 transition hover:text-cyan-100 hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/30">
-                  忘记密码？
+                  Forgot password?
                 </a>
               </div>
               <input
@@ -71,24 +71,24 @@ LOGIN_FALLBACK_CODE = """export default function App() {
                 name="password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="请输入密码"
+                placeholder="Enter your password"
                 className="h-11 w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 text-sm text-white placeholder:text-slate-500 transition focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
               />
-              <p className="mt-2 text-xs text-slate-400">建议使用至少 8 位字符，并包含数字或符号。</p>
+              <p className="mt-2 text-xs text-slate-400">Use at least 8 characters with numbers or symbols.</p>
             </div>
 
             <button
               type="submit"
               className="h-11 w-full rounded-xl bg-cyan-300 px-4 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-200 active:scale-[0.99] focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/40"
             >
-              登录
+              Sign in
             </button>
           </div>
 
           <p className="mt-6 text-center text-sm text-slate-300">
-            还没有账户？
+            No account yet?
             <a href="#" className="ml-1 font-semibold text-cyan-200 underline-offset-4 hover:text-cyan-100 hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/30">
-              创建学习空间
+              Create account
             </a>
           </p>
         </form>
@@ -98,34 +98,53 @@ LOGIN_FALLBACK_CODE = """export default function App() {
 }"""
 
 
-DASHBOARD_FALLBACK_CODE = """const courses = [
+DASHBOARD_FALLBACK_CODE = """import { useEffect, useState } from 'react'
+
+type RoutePath = '/' | '/plans/new'
+
+const courses = [
   { title: 'React Component Design', progress: '82%', status: 'Keep learning' },
   { title: 'Tailwind Accessibility Styles', progress: '64%', status: 'Today task' },
   { title: 'Product Prototype Review', progress: '41%', status: 'Pending' },
 ]
 
-type View = 'dashboard' | 'plan-create'
+function normalizePath(pathname: string): RoutePath {
+  return pathname === '/plans/new' ? '/plans/new' : '/'
+}
 
 export default function App() {
-  const [view, setView] = useState<View>('dashboard')
+  const [path, setPath] = useState<RoutePath>(() => normalizePath(window.location.pathname))
   const [planName, setPlanName] = useState('')
   const [planGoal, setPlanGoal] = useState('')
   const [planCycle, setPlanCycle] = useState('4 weeks')
   const [saved, setSaved] = useState(false)
 
-  if (view === 'plan-create') {
+  const navigate = (nextPath: RoutePath) => {
+    window.history.pushState({ path: nextPath }, '', nextPath)
+    setPath(nextPath)
+  }
+
+  useEffect(() => {
+    const onPopState = () => {
+      setPath(normalizePath(window.location.pathname))
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  if (path === '/plans/new') {
     return (
       <main className="min-h-screen w-full overflow-hidden bg-slate-950 text-slate-100">
         <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-6 py-10">
           <section className="w-full rounded-3xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl shadow-black/30">
             <div className="mb-6 flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">Learning Plan</p>
-                <h1 className="mt-2 text-3xl font-bold text-white">Create Study Plan</h1>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">Route: /plans/new</p>
+                <h1 className="mt-2 text-3xl font-bold text-white">Create Plan</h1>
               </div>
               <button
                 type="button"
-                onClick={() => setView('dashboard')}
+                onClick={() => navigate('/')}
                 className="h-10 rounded-xl border border-white/20 px-4 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/30"
               >
                 Back to Dashboard
@@ -138,7 +157,7 @@ export default function App() {
                 event.preventDefault()
                 setSaved(true)
               }}
-              aria-label="Create learning plan form"
+              aria-label="Create plan form"
             >
               <div>
                 <label htmlFor="plan-name" className="mb-2 block text-sm font-medium text-slate-100">Plan Name</label>
@@ -146,7 +165,7 @@ export default function App() {
                   id="plan-name"
                   value={planName}
                   onChange={(event) => setPlanName(event.target.value)}
-                  placeholder="Frontend Engineering Advanced Plan"
+                  placeholder="Frontend engineering advanced plan"
                   className="h-11 w-full rounded-xl border border-white/15 bg-slate-900/70 px-4 text-sm text-white placeholder:text-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
                 />
               </div>
@@ -239,12 +258,12 @@ export default function App() {
                 <p className="mb-2 text-sm font-semibold uppercase tracking-[0.24em] text-cyan-200">Accessible Dashboard</p>
                 <h1 className="text-3xl font-bold tracking-tight text-white">Online Learning Dashboard</h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                  Track progress, course tasks, and key metrics with accessible interaction and clear focus states.
+                  Track progress, course tasks, and key metrics with clear focus states.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setView('plan-create')}
+                onClick={() => navigate('/plans/new')}
                 className="h-11 rounded-xl bg-cyan-300 px-5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/40"
               >
                 New Learning Plan
@@ -286,7 +305,17 @@ export default function App() {
 
 def build_fallback_code(prompt: str) -> str:
     normalized_prompt = prompt.lower()
-    login_terms = ("login", "登录", "邮箱", "email", "密码", "password", "忘记密码")
+    login_terms = (
+        "login",
+        "signin",
+        "sign in",
+        "email",
+        "password",
+        "\u767b\u5f55",
+        "\u90ae\u7bb1",
+        "\u5bc6\u7801",
+        "\u5fd8\u8bb0\u5bc6\u7801",
+    )
     if any(term in normalized_prompt for term in login_terms):
         return LOGIN_FALLBACK_CODE
     return DASHBOARD_FALLBACK_CODE
