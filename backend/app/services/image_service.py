@@ -1,32 +1,91 @@
-﻿from app.services.llm_service import vision_completion
+import json
+import re
+from typing import Any
+
+from app.services.llm_service import vision_completion
 from app.services.prompt_builder import build_image_analysis_prompt
+
+
+def _extract_json_payload(text: str) -> dict[str, Any]:
+    source = text.strip()
+    if not source:
+        return {}
+
+    try:
+        parsed = json.loads(source)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+
+    match = re.search(r"\{[\s\S]*\}", source)
+    if not match:
+        return {}
+
+    try:
+        parsed = json.loads(match.group(0))
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        return {}
+
+    return {}
+
+
+def _normalize_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+
+    if isinstance(value, str):
+        parts = re.split(r"[、,，/\\n]+", value)
+        return [part.strip() for part in parts if part.strip()]
+
+    return []
 
 
 async def analyze_image(image_base64: str) -> dict:
     messages = build_image_analysis_prompt()
-    messages[1]["content"] = [
+    messages.append(
         {
-            "type": "text",
-            "text": (
-                "请分析这张图片中的 UI 布局，描述以下内容：\n"
-                "1. 整体布局结构，如左右分栏、上下布局等。\n"
-                "2. 主要 UI 元素，如导航栏、表单、卡片、按钮等。\n"
-                "3. 颜色方案和视觉风格。\n"
-                "4. 响应式设计特点。\n\n"
-                "请用简洁的中文描述，不要过度解读。"
-            ),
-        },
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{image_base64}",
-            },
-        },
-    ]
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": (
+                        "请分析这张图片中的 UI 布局，并严格按照 JSON 输出。"
+                        "如果图片是手绘草图，也请尽量识别结构、组件和风格。"
+                    ),
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+                },
+            ],
+        }
+    )
 
-    result = await vision_completion(messages)
+    result = await vision_completion(messages, temperature=0.2, max_tokens=800)
+    payload = _extract_json_payload(result)
+
+    description = str(payload.get("description") or result).strip()
+    layout = str(payload.get("layout") or description).strip()
+    components = _normalize_list(payload.get("components"))
+    style = _normalize_list(payload.get("style"))
+    accessibility_hints = _normalize_list(
+        payload.get("accessibilityHints") or payload.get("accessibility_hints")
+    )
+    prompt_suggestion = str(
+        payload.get("promptSuggestion") or payload.get("suggestedPrompt") or ""
+    ).strip()
+
+    if not description:
+        description = layout or "图片布局识别结果"
 
     return {
-        "description": result,
-        "layout": result,
+        "description": description,
+        "layout": layout,
+        "components": components,
+        "style": style,
+        "accessibilityHints": accessibility_hints,
+        "promptSuggestion": prompt_suggestion or None,
     }

@@ -1,59 +1,64 @@
-﻿import { useCopilotAction, useCopilotReadable } from '@copilotkit/react-core'
+import { useCopilotAction, useCopilotReadable } from '@copilotkit/react-core'
+
+import { DEFAULT_GENERATED_CODE } from '@/lib/constants'
 import { api } from '@/services/api'
 import { extractCodeFromResponse, isPreviewableReactCode } from '@/lib/utils'
-import { DEFAULT_GENERATED_CODE } from '@/lib/constants'
 import { useAppStore } from '@/stores/useAppStore'
 import type { A11yIssue } from '@/types'
 
 function summarizeA11yIssue(issue: A11yIssue) {
-  return `${issue.impact}: ${issue.help} (${issue.nodes} affected node${issue.nodes === 1 ? '' : 's'})`
+  return `${issue.impact}: ${issue.help}（影响 ${issue.nodes} 个元素）`
 }
 
 export function CopilotActions() {
-  const textPrompt = useAppStore((s) => s.textPrompt)
-  const generatedCode = useAppStore((s) => s.generatedCode)
-  const a11yResults = useAppStore((s) => s.a11yResults)
-  const imageDescription = useAppStore((s) => s.imageDescription)
+  const textPrompt = useAppStore((state) => state.textPrompt)
+  const generatedCode = useAppStore((state) => state.generatedCode)
+  const previousGeneratedCode = useAppStore((state) => state.previousGeneratedCode)
+  const imageDescription = useAppStore((state) => state.imageDescription)
+  const imageAnalysis = useAppStore((state) => state.imageAnalysis)
+  const a11yResults = useAppStore((state) => state.a11yResults)
 
-  const setTextPrompt = useAppStore((s) => s.setTextPrompt)
-  const updateGeneratedCode = useAppStore((s) => s.updateGeneratedCode)
-  const addChatMessages = useAppStore((s) => s.addChatMessages)
-  const setGenerationError = useAppStore((s) => s.setGenerationError)
-  const setIsGenerating = useAppStore((s) => s.setIsGenerating)
-  const sendMessage = useAppStore((s) => s.sendMessage)
+  const setTextPrompt = useAppStore((state) => state.setTextPrompt)
+  const restorePreviousGeneratedCode = useAppStore((state) => state.restorePreviousGeneratedCode)
+  const updateGeneratedCode = useAppStore((state) => state.updateGeneratedCode)
+  const addChatMessages = useAppStore((state) => state.addChatMessages)
+  const setGenerationError = useAppStore((state) => state.setGenerationError)
+  const setIsGenerating = useAppStore((state) => state.setIsGenerating)
+  const sendMessage = useAppStore((state) => state.sendMessage)
 
   useCopilotReadable(
     {
-      description: 'Current multimodal UI generation workspace state',
+      description: '当前多模态 UI 生成工作区状态',
       value: {
         textPrompt,
         hasGeneratedCode: Boolean(generatedCode),
         generatedCodePreview: generatedCode,
+        previousGeneratedCodePreview: previousGeneratedCode,
         imageDescription,
+        imageAnalysis,
         a11yScore: a11yResults?.score ?? null,
         a11yViolations: a11yResults?.violations.map(summarizeA11yIssue) ?? [],
       },
     },
-    [textPrompt, generatedCode, imageDescription, a11yResults]
+    [textPrompt, generatedCode, previousGeneratedCode, imageDescription, imageAnalysis, a11yResults]
   )
 
   useCopilotAction(
     {
       name: 'generateAccessibleReactUI',
-      description:
-        'Generate a complete accessible React + TypeScript + Tailwind UI from a natural language prompt. Updates the live Sandpack preview.',
+      description: '根据自然语言提示生成完整可访问的 React + TypeScript + Tailwind 界面，并更新实时预览。',
       parameters: [
         {
           name: 'prompt',
           type: 'string',
-          description: 'The UI requirement, layout, style, and accessibility expectations.',
+          description: '界面需求、布局、风格和无障碍要求。',
           required: true,
         },
       ],
       handler: async ({ prompt }) => {
         const normalizedPrompt = String(prompt ?? '').trim()
         if (!normalizedPrompt) {
-          return 'No prompt was provided.'
+          return '未提供生成提示词。'
         }
 
         setTextPrompt(normalizedPrompt)
@@ -69,11 +74,11 @@ export function CopilotActions() {
             { role: 'user', content: normalizedPrompt },
             { role: 'assistant', content: response.explanation || 'CopilotKit action 已生成代码，请在预览区查看效果。' },
           ])
-          return 'Generated accessible React UI and updated the live preview.'
+          return '已生成可访问 React 界面，并更新实时预览。'
         } catch (error) {
           const message = error instanceof Error ? error.message : '生成失败'
           setGenerationError(message)
-          return `Generation failed: ${message}`
+          return `生成失败：${message}`
         } finally {
           setIsGenerating(false)
         }
@@ -85,28 +90,27 @@ export function CopilotActions() {
   useCopilotAction(
     {
       name: 'iterateGeneratedUI',
-      description:
-        'Modify the currently generated UI according to a short natural language instruction, then update the live preview.',
+      description: '根据自然语言指令修改当前生成的界面，并更新实时预览。',
       parameters: [
         {
           name: 'instruction',
           type: 'string',
-          description: 'The requested UI change, such as changing colors, layout, animation, copy, or accessibility behavior.',
+          description: '需要修改的内容，例如颜色、布局、动画、文案或无障碍行为。',
           required: true,
         },
       ],
       handler: async ({ instruction }) => {
         const message = String(instruction ?? '').trim()
         if (!message) {
-          return 'No iteration instruction was provided.'
+          return '未提供迭代指令。'
         }
 
         try {
           await sendMessage(message)
-          return 'Updated the generated UI and refreshed the live preview.'
+          return '已更新当前界面并刷新实时预览。'
         } catch (error) {
           const fallback = error instanceof Error ? error.message : '请求失败'
-          return `Iteration failed: ${fallback}`
+          return `迭代失败：${fallback}`
         }
       },
     },
@@ -115,14 +119,25 @@ export function CopilotActions() {
 
   useCopilotAction(
     {
+      name: 'restorePreviousPreviewVersion',
+      description: '恢复到上一版生成结果。',
+      handler: async () => {
+        restorePreviousGeneratedCode()
+        return '已恢复到上一版预览。'
+      },
+    },
+    [restorePreviousGeneratedCode]
+  )
+
+  useCopilotAction(
+    {
       name: 'fixAccessibilityIssue',
-      description:
-        'Apply an accessibility fix to the generated code using one axe-core issue id from the current accessibility scan.',
+      description: '根据当前 axe-core 扫描结果中的问题 ID，对生成代码应用无障碍修复。',
       parameters: [
         {
           name: 'issueId',
           type: 'string',
-          description: 'The axe-core violation id to fix, for example color-contrast or button-name.',
+          description: '要修复的 axe-core 问题 ID，例如 color-contrast 或 button-name。',
           required: true,
         },
       ],
@@ -130,24 +145,24 @@ export function CopilotActions() {
         const id = String(issueId ?? '').trim()
         const issue = a11yResults?.violations.find((item) => item.id === id)
         if (!issue) {
-          return `No accessibility issue with id "${id}" is available in the current scan.`
+          return `当前扫描中不存在 ID 为 "${id}" 的无障碍问题。`
         }
 
         try {
           const response = await api.fix({ issue, currentCode: generatedCode })
           const code = extractCodeFromResponse(response.fixCode)
           if (!isPreviewableReactCode(code)) {
-            return `Accessibility fix for ${id} did not return previewable code, so the current preview was kept.`
+            return `问题 ${id} 的修复结果未返回可预览代码，已保留当前预览。`
           }
 
           updateGeneratedCode(code, response.css)
           addChatMessages([
             { role: 'assistant', content: `已通过 CopilotKit action 修复无障碍问题：${issue.help}` },
           ])
-          return `Fixed accessibility issue ${id} and updated the live preview.`
+          return `已修复无障碍问题 ${id}，并更新实时预览。`
         } catch (error) {
           const fallback = error instanceof Error ? error.message : '修复失败'
-          return `Accessibility fix failed: ${fallback}`
+          return `无障碍修复失败：${fallback}`
         }
       },
     },

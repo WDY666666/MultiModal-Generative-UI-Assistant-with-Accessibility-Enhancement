@@ -5,6 +5,15 @@ export interface ChatMessage {
   timestamp: number
 }
 
+export interface ImageAnalysis {
+  description: string
+  layout: string
+  components: string[]
+  style: string[]
+  accessibilityHints: string[]
+  promptSuggestion?: string | null
+}
+
 export interface A11yIssue {
   id: string
   impact: 'minor' | 'moderate' | 'serious' | 'critical'
@@ -41,10 +50,7 @@ export interface AnalyzeImageRequest {
   imageBase64: string
 }
 
-export interface AnalyzeImageResponse {
-  description: string
-  layout: string
-}
+export type AnalyzeImageResponse = ImageAnalysis
 
 export interface ChatRequest {
   message: string

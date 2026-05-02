@@ -83,14 +83,24 @@ def _extract_code_candidate(text: str) -> str:
     if block and "export default" in block:
         return block
 
-    if "export default" in text and "className" in text:
+    if "export default" in text and ("className" in text or "return (" in text or "=>" in text):
         return text.strip()
 
     return ""
 
 
 def _extract_workspace_code(payload: dict[str, Any], messages: list[dict[str, str]]) -> str:
-    key_hints = {"generatedcodepreview", "generatedcode", "currentcode", "code", "tsx", "jsx"}
+    key_hints = {
+        "generatedcodepreview",
+        "generatedcode",
+        "previousgeneratedcodepreview",
+        "currentcode",
+        "workspacecode",
+        "previewcode",
+        "code",
+        "tsx",
+        "jsx",
+    }
     found: list[str] = []
 
     def walk(node: Any, depth: int = 0):
@@ -118,7 +128,7 @@ def _extract_workspace_code(payload: dict[str, Any], messages: list[dict[str, st
             found.append(candidate)
 
     for candidate in reversed(found):
-        if "export default" in candidate and ("className" in candidate or "return (" in candidate):
+        if "export default" in candidate and ("className" in candidate or "return (" in candidate or "=>" in candidate):
             return candidate
     return ""
 
@@ -126,10 +136,7 @@ def _extract_workspace_code(payload: dict[str, Any], messages: list[dict[str, st
 async def _build_agent_reply(payload: dict[str, Any]) -> str:
     messages = _extract_messages(payload)
     if not messages:
-        return (
-            "CopilotKit runtime is connected. "
-            "Describe what you want to generate or how you want to iterate the current UI."
-        )
+        return "Copilot 工作区已连接。请直接描述你要生成或迭代的当前界面。"
 
     latest_user = _latest_user_message(messages)
     workspace_code = _extract_workspace_code(payload, messages)
@@ -147,9 +154,7 @@ async def _build_agent_reply(payload: dict[str, Any]) -> str:
             )
             if _is_previewable_code(candidate):
                 return (
-                    "I used the current workspace code as context and generated an updated previewable component. "
-                    "To apply it automatically to the live preview, use the right-side iteration panel "
-                    "or run the `iterateGeneratedUI` action.\n\n"
+                    "已基于当前工作区代码生成可预览的更新版本。如下代码可直接应用到中间预览区：\n\n"
                     f"```tsx\n{candidate}\n```"
                 )
         except Exception:
@@ -159,19 +164,16 @@ async def _build_agent_reply(payload: dict[str, Any]) -> str:
     system_message = {
         "role": "system",
         "content": (
-            "You are the CopilotKit workspace assistant for this project. "
-            "Always ground your answer in the current workspace context when available. "
-            "Prioritize actionable guidance for React + TypeScript + Tailwind generation, "
-            "preview stability, and accessibility fixes. Keep answers concise and practical."
+            "你是本项目的 CopilotKit 工作区助手。"
+            "在有上下文时必须基于当前工作区代码回答。"
+            "优先给出 React + TypeScript + Tailwind 生成、预览稳定性和无障碍修复的可执行建议。"
+            "回答保持简洁实用。若涉及界面文案，默认使用简体中文。"
         ),
     }
     try:
         return await chat_completion([system_message, *messages], temperature=0.4, max_tokens=1024)
     except Exception:
-        return (
-            "CopilotKit runtime is connected, but the upstream model call failed. "
-            "Please verify the model endpoint, key, and network availability."
-        )
+        return "Copilot 运行时已连接，但模型请求失败。请检查模型地址、密钥与网络状态。"
 
 
 async def _stream_agent_run(payload: dict[str, Any]) -> AsyncIterator[str]:

@@ -1,34 +1,22 @@
-﻿import { Bot, Code2, Sparkles } from 'lucide-react'
+import { Bot, Code2, RotateCcw, Sparkles } from 'lucide-react'
 import { CopilotChat } from '@copilotkit/react-ui'
-import { useAppStore } from '@/stores/useAppStore'
+
 import { CopilotCodeAutoApply } from '@/components/copilot/CopilotCodeAutoApply'
+import { useAppStore } from '@/stores/useAppStore'
 
-const copilotSuggestions = [
-  {
-    title: 'Polish current page',
-    message:
-      'Iterate the current preview code only. Improve spacing, typography, and button hierarchy while keeping the current layout.',
-  },
-  {
-    title: 'Improve accessibility',
-    message:
-      'Based on current code, improve keyboard focus visibility, aria labels, and color contrast without redesigning the page.',
-  },
-  {
-    title: 'Add interactive flow',
-    message:
-      'Add an in-file multi-view interaction flow using useState (for example dashboard -> create plan -> detail) with Back actions.',
-  },
-]
+const COPILOT_INSTRUCTIONS = `你是本项目的 Copilot 工作区助手。请始终围绕“当前 generatedCodePreview”做修改，不要无故重新生成完全不同的页面。
 
-const COPILOT_INSTRUCTIONS = `You are the workspace copilot for this app.
-When user asks to generate or modify UI, prioritize the existing generatedCodePreview context.
-Do not drift into unrelated pages unless the user explicitly requests a redesign.
-For UI changes, return complete previewable App.tsx code in a fenced tsx block.
-Ensure accessibility and keep React + TypeScript + Tailwind only.`
+规则：
+1. 优先在现有页面上做最小必要修改。
+2. 只有用户明确要求重做、重构或切换为完全不同页面时，才重建结构。
+3. 若用户要求跳转/创建详情页，请在单文件预览里用真实可交互的 view 或 History API 实现。
+4. 所有用户可见文案默认使用简体中文。
+5. 生成结果尽量保持可预览、可直接应用、可访问。
+6. 若当前代码存在上一版，可优先做增量修复而不是推翻重写。`
 
 export function CopilotChatPanel() {
   const generatedCode = useAppStore((state) => state.generatedCode)
+  const previousGeneratedCode = useAppStore((state) => state.previousGeneratedCode)
   const a11yResults = useAppStore((state) => state.a11yResults)
   const addChatMessages = useAppStore((state) => state.addChatMessages)
   const setIsChatLoading = useAppStore((state) => state.setIsChatLoading)
@@ -44,14 +32,13 @@ export function CopilotChatPanel() {
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-foreground">CopilotKit Workspace Assistant</h2>
+              <h2 className="text-sm font-semibold text-foreground">Copilot 工作区助手</h2>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                Auto-apply enabled
+                自动应用已开启
               </span>
             </div>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              This panel is powered by CopilotKit runtime. If the assistant returns previewable TSX, it is automatically
-              applied to the live preview.
+              这里会围绕当前预览代码做迭代。你可以直接说“把主按钮改成蓝色”“增加淡入动画”“恢复上一版”。
             </p>
           </div>
         </div>
@@ -59,11 +46,19 @@ export function CopilotChatPanel() {
         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-2">
             <Code2 className="h-3.5 w-3.5 text-primary" />
-            Current code {generatedCode.length.toLocaleString()} chars
+            当前代码 {generatedCode.length.toLocaleString()} 字符
           </div>
           <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-2">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            a11y score {a11yResults?.score ?? 'not scanned'}
+            无障碍评分 {a11yResults?.score ?? '未扫描'}
+          </div>
+          <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-2">
+            <RotateCcw className="h-3.5 w-3.5 text-primary" />
+            {previousGeneratedCode ? '支持恢复上一版' : '尚无上一版'}
+          </div>
+          <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            当前预览已和 Copilot 共享状态
           </div>
         </div>
       </div>
@@ -72,7 +67,6 @@ export function CopilotChatPanel() {
         <CopilotChat
           className="h-full"
           instructions={COPILOT_INSTRUCTIONS}
-          suggestions={copilotSuggestions}
           onInProgress={setIsChatLoading}
           onSubmitMessage={async (message) => {
             const normalized = message.trim()
@@ -82,12 +76,16 @@ export function CopilotChatPanel() {
             addChatMessages([{ role: 'user', content: normalized }])
           }}
           labels={{
-            title: 'Workspace Copilot',
-            initial:
-              'Ask for targeted edits to the current preview code. Example: "Only update current UI, make CTA button blue, and add focus-visible states."',
-            placeholder: 'Iterate current preview code...',
-            stopGenerating: 'Stop',
-            regenerateResponse: 'Regenerate',
+            title: 'Copilot 助手',
+            initial: '直接输入你的修改要求，例如：把主按钮改成蓝色，或者恢复上一版。',
+            placeholder: '输入迭代指令（基于当前预览代码）...',
+            stopGenerating: '停止生成',
+            regenerateResponse: '重新生成',
+            copyToClipboard: '复制内容',
+            thumbsUp: '有帮助',
+            thumbsDown: '没帮助',
+            copied: '已复制',
+            error: '请求失败，请稍后重试。',
           }}
         />
       </div>

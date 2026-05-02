@@ -280,7 +280,7 @@ export function SandpackPreview() {
         addChatMessages([
           {
             role: 'assistant',
-            content: `Preview failed and was auto-rolled back to the previous stable code: ${message}`,
+            content: `预览失败，已自动回滚到上一版稳定代码：${message}`,
           },
         ])
       }
@@ -318,7 +318,7 @@ export function SandpackPreview() {
         const looksBlank = rootHtmlLength <= MIN_RENDERED_HTML_LENGTH && rootTextLength <= 1
 
         if (looksBlank) {
-          rollbackToStableCode('Preview rendered blank output.')
+          rollbackToStableCode('预览渲染为空白内容。')
           return
         }
 
@@ -329,7 +329,7 @@ export function SandpackPreview() {
       }
 
       if (data.type === 'PREVIEW_RUNTIME_ERROR') {
-        const message = String((data as { message?: string }).message || 'Preview runtime failed.')
+        const message = String((data as { message?: string }).message || '预览运行失败。')
         rollbackToStableCode(message)
       }
     }
@@ -361,7 +361,7 @@ export function SandpackPreview() {
     }
 
     rollbackToStableCode(
-      `Generated TSX still has syntax errors. ${previewState.diagnostics[0] ?? 'Please retry with a more specific instruction.'}`
+      `生成的 TSX 仍有语法错误。${previewState.diagnostics[0] ?? '请使用更具体的指令后重试。'}`
     )
   }, [diagnosticsSignature, previewState.diagnostics, rollbackToStableCode])
 
@@ -369,7 +369,7 @@ export function SandpackPreview() {
     <div className="preview-stage relative h-full min-h-0 overflow-hidden bg-white">
       <iframe
         key={reloadNonce}
-        title="Generated UI Preview"
+        title="生成结果预览"
         className="preview-runtime-iframe h-full w-full border-0"
         srcDoc={previewState.srcDoc}
       />
@@ -378,11 +378,11 @@ export function SandpackPreview() {
         <div className="absolute inset-4 z-10 overflow-auto rounded-xl border border-red-400/40 bg-red-950/95 p-4 text-xs text-red-100 shadow-xl">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <AlertTriangle className="h-4 w-4" />
-            Preview runtime error
+            预览运行错误
           </div>
           <p className="text-[11px] leading-relaxed text-red-200">{runtimeError}</p>
           <p className="mt-2 text-[11px] leading-relaxed text-red-300/90">
-            The preview was rolled back to the previous stable version.
+            已自动回滚到上一版稳定预览。
           </p>
         </div>
       )}
@@ -391,7 +391,7 @@ export function SandpackPreview() {
         <div className="absolute inset-4 z-10 overflow-auto rounded-xl border border-red-400/40 bg-red-950/95 p-4 text-xs text-red-100 shadow-xl">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <AlertTriangle className="h-4 w-4" />
-            Generated code has syntax issues and cannot be previewed
+            生成代码存在语法问题，暂时无法预览
           </div>
           <pre className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-red-200">
             {previewState.diagnostics.join('\n')}
@@ -405,7 +405,7 @@ export function SandpackPreview() {
         className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white/90 px-2 py-1 text-[11px] font-medium text-slate-700 shadow hover:bg-white"
       >
         <RefreshCw className="h-3.5 w-3.5" />
-        Reload Preview
+        重新加载预览
       </button>
     </div>
   )

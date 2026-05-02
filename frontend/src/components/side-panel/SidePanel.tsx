@@ -1,19 +1,18 @@
 ﻿import { useState } from 'react'
-import { Bot, MessageSquare, Shield } from 'lucide-react'
-import { ChatWindow } from './ChatWindow'
+import { Bot, Shield } from 'lucide-react'
+
 import { A11yReport } from './A11yReport'
 import { CopilotChatPanel } from './CopilotChatPanel'
 
-type SidePanelTab = 'copilot' | 'chat' | 'a11y'
+type SidePanelTab = 'copilot' | 'a11y'
 
 const tabs: Array<{
   id: SidePanelTab
   label: string
   icon: typeof Bot
 }> = [
-  { id: 'copilot', label: 'CopilotKit', icon: Bot },
-  { id: 'chat', label: 'Manual Chat', icon: MessageSquare },
-  { id: 'a11y', label: 'A11y Scan', icon: Shield },
+  { id: 'copilot', label: 'Copilot 助手', icon: Bot },
+  { id: 'a11y', label: '无障碍检查', icon: Shield },
 ]
 
 export function SidePanel() {
@@ -43,7 +42,6 @@ export function SidePanel() {
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {activeTab === 'copilot' && <CopilotChatPanel />}
-        {activeTab === 'chat' && <ChatWindow />}
         {activeTab === 'a11y' && <A11yReport />}
       </div>
     </div>

@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 
 from app.api.routes.generate import _is_safe_previewable_code, _repair_syntax_if_needed, _strip_code_fence
 from app.schemas.request import ExplainIssueRequest, FixRequest
@@ -53,7 +53,7 @@ async def fix_issue(req: FixRequest):
                 if _is_safe_previewable_code(req.current_code)
                 else build_fallback_code(issue_description)
             )
-            result["explanation"] = "The model did not return previewable fix code. A preview-safe version was kept."
+            result["explanation"] = "模型未返回可预览的修复代码，已保留预览安全版本。"
 
         result["fixCode"] = fixed_code
         result["css"] = compile_tailwind_css(fixed_code)
@@ -62,6 +62,6 @@ async def fix_issue(req: FixRequest):
         fallback = req.current_code if _is_safe_previewable_code(req.current_code) else build_fallback_code(req.issue.id)
         return FixResponse(
             fixCode=fallback,
-            explanation=f"Automatic accessibility fix failed. Kept a preview-safe version. Original error: {error}",
+            explanation=f"自动无障碍修复失败，已保留预览安全版本。原始错误：{error}",
             css=compile_tailwind_css(fallback),
         )

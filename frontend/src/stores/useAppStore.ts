@@ -1,17 +1,29 @@
-﻿import { create } from 'zustand'
+import { create } from 'zustand'
+
 import { api } from '@/services/api'
-import { fileToBase64, generateId, extractCodeFromResponse, isPreviewableReactCode } from '@/lib/utils'
-import { DEFAULT_GENERATED_CODE, DEFAULT_PREVIEW_CSS } from '@/lib/constants'
-import type { ChatMessage, A11yResults } from '@/types'
+import {
+  DEFAULT_GENERATED_CODE,
+  DEFAULT_PREVIEW_CSS,
+} from '@/lib/constants'
+import {
+  extractCodeFromResponse,
+  fileToBase64,
+  generateId,
+  isPreviewableReactCode,
+} from '@/lib/utils'
+import type { A11yResults, ChatMessage, ImageAnalysis } from '@/types'
 
 interface AppState {
   textPrompt: string
   uploadedImage: File | null
   imagePreview: string | null
   imageDescription: string
+  imageAnalysis: ImageAnalysis | null
 
   generatedCode: string
   generatedCss: string
+  previousGeneratedCode: string | null
+  previousGeneratedCss: string | null
   isGenerating: boolean
   generationError: string | null
 
@@ -24,11 +36,13 @@ interface AppState {
   setTextPrompt: (text: string) => void
   setUploadedImage: (file: File | null) => void
   setImageDescription: (desc: string) => void
+  setImageAnalysis: (analysis: ImageAnalysis | null) => void
   generate: () => Promise<void>
   sendMessage: (message: string) => Promise<void>
   setA11yResults: (results: A11yResults) => void
   setIsScanning: (scanning: boolean) => void
   updateGeneratedCode: (code: string, css?: string) => void
+  restorePreviousGeneratedCode: () => void
   setGeneratedCss: (css: string) => void
   addChatMessages: (messages: Omit<ChatMessage, 'id' | 'timestamp'>[]) => void
   setGenerationError: (error: string | null) => void
@@ -52,9 +66,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   uploadedImage: null,
   imagePreview: null,
   imageDescription: '',
+  imageAnalysis: null,
 
   generatedCode: DEFAULT_GENERATED_CODE,
   generatedCss: DEFAULT_PREVIEW_CSS,
+  previousGeneratedCode: null,
+  previousGeneratedCss: null,
   isGenerating: false,
   generationError: null,
 
@@ -73,16 +90,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     if (file) {
-      set({ uploadedImage: file, imagePreview: URL.createObjectURL(file) })
-    } else {
-      set({ uploadedImage: null, imagePreview: null })
+      set({
+        uploadedImage: file,
+        imagePreview: URL.createObjectURL(file),
+        imageDescription: '',
+        imageAnalysis: null,
+      })
+      return
     }
+
+    set({
+      uploadedImage: null,
+      imagePreview: null,
+      imageDescription: '',
+      imageAnalysis: null,
+    })
   },
 
   setImageDescription: (desc) => set({ imageDescription: desc }),
+  setImageAnalysis: (analysis) => set({ imageAnalysis: analysis }),
 
   generate: async () => {
-    const { textPrompt, uploadedImage, imageDescription } = get()
+    const { textPrompt, uploadedImage, imageDescription, updateGeneratedCode } = get()
     if (!textPrompt.trim() && !uploadedImage) {
       return
     }
@@ -92,7 +121,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const imageBase64 = uploadedImage ? await fileToBase64(uploadedImage) : undefined
       const fullPrompt = imageDescription
-        ? `${textPrompt}\n\nDetected layout hints from uploaded image:\n${imageDescription}`
+        ? `${textPrompt}\n\n从上传图片识别到的布局提示：\n${imageDescription}`
         : textPrompt
 
       const response = await api.generate({
@@ -104,31 +133,31 @@ export const useAppStore = create<AppState>((set, get) => ({
       const hasPreviewableCode = isPreviewableReactCode(candidateCode)
       const code = hasPreviewableCode ? candidateCode : DEFAULT_GENERATED_CODE
 
+      updateGeneratedCode(code, response.css || DEFAULT_PREVIEW_CSS)
+
       const assistantContent = hasPreviewableCode
-        ? response.explanation || 'Code generated successfully. Check the preview panel.'
-        : 'The model did not return complete previewable code. A local fallback preview was loaded. Please retry with a more specific prompt.'
+        ? response.explanation || '代码已生成，请在中间预览区查看。'
+        : '模型未返回完整可预览代码，已加载本地兜底预览。请尝试更具体的描述。'
 
       set({
-        generatedCode: code,
-        generatedCss: response.css || DEFAULT_PREVIEW_CSS,
         isGenerating: false,
         generationError: null,
         a11yResults: null,
         chatMessages: appendMessages(get().chatMessages, [
-          { role: 'user', content: textPrompt || '[Image-driven generation request]' },
+          { role: 'user', content: textPrompt || '[基于图片的生成请求]' },
           { role: 'assistant', content: assistantContent },
         ]),
       })
     } catch (error) {
       set({
         isGenerating: false,
-        generationError: error instanceof Error ? error.message : 'Generation failed',
+        generationError: error instanceof Error ? error.message : '生成失败',
       })
     }
   },
 
   sendMessage: async (message) => {
-    const { generatedCode, chatMessages, imageDescription } = get()
+    const { generatedCode, chatMessages, imageDescription, updateGeneratedCode } = get()
     const userMsg: ChatMessage = {
       id: generateId(),
       role: 'user',
@@ -147,16 +176,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
 
       const candidateCode = extractCodeFromResponse(response.code)
-      const code = isPreviewableReactCode(candidateCode) ? candidateCode : ''
-      const nextCode = code || generatedCode || DEFAULT_GENERATED_CODE
+      const previewableCode = isPreviewableReactCode(candidateCode) ? candidateCode : ''
+      const nextCode = previewableCode || generatedCode || DEFAULT_GENERATED_CODE
 
-      const reply = code
-        ? response.reply || 'Code updated. Check the preview panel.'
-        : 'The model did not return complete previewable code. Current preview was kept. Please retry with a more specific edit instruction.'
+      updateGeneratedCode(nextCode, response.css || get().generatedCss)
+
+      const reply = previewableCode
+        ? response.reply || '代码已更新，请查看中间预览区。'
+        : '模型未返回完整可预览代码，已保留当前预览。请给出更具体的修改要求。'
 
       set({
-        generatedCode: nextCode,
-        generatedCss: response.css || get().generatedCss,
         isChatLoading: false,
         a11yResults: null,
         chatMessages: appendMessages(get().chatMessages, [{ role: 'assistant', content: reply }]),
@@ -167,7 +196,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         chatMessages: appendMessages(get().chatMessages, [
           {
             role: 'assistant',
-            content: `Error: ${error instanceof Error ? error.message : 'Request failed'}`,
+            content: `错误：${error instanceof Error ? error.message : '请求失败'}`,
           },
         ]),
       })
@@ -176,12 +205,40 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setA11yResults: (results) => set({ a11yResults: results }),
   setIsScanning: (scanning) => set({ isScanning: scanning }),
+
   updateGeneratedCode: (code, css) =>
-    set((state) => ({
-      generatedCode: code,
-      generatedCss: css ?? state.generatedCss,
-      a11yResults: null,
-    })),
+    set((state) => {
+      const nextCode = code.trim() ? code : DEFAULT_GENERATED_CODE
+      const nextCss = css ?? state.generatedCss
+
+      if (state.generatedCode.trim() === nextCode.trim() && state.generatedCss.trim() === nextCss.trim()) {
+        return state
+      }
+
+      return {
+        generatedCode: nextCode,
+        generatedCss: nextCss,
+        previousGeneratedCode: state.generatedCode,
+        previousGeneratedCss: state.generatedCss,
+        a11yResults: null,
+      }
+    }),
+
+  restorePreviousGeneratedCode: () =>
+    set((state) => {
+      if (!state.previousGeneratedCode) {
+        return state
+      }
+
+      return {
+        generatedCode: state.previousGeneratedCode,
+        generatedCss: state.previousGeneratedCss ?? state.generatedCss,
+        previousGeneratedCode: state.generatedCode,
+        previousGeneratedCss: state.generatedCss,
+        a11yResults: null,
+      }
+    }),
+
   setGeneratedCss: (css) => set({ generatedCss: css }),
   addChatMessages: (messages) => set({ chatMessages: appendMessages(get().chatMessages, messages) }),
   setGenerationError: (error) => set({ generationError: error }),

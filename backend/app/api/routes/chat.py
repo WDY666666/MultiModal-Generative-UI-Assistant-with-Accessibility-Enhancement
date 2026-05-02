@@ -17,16 +17,16 @@ router = APIRouter()
 
 def _fallback_chat_code(message: str, current_code: str) -> tuple[str, str]:
     if _is_safe_previewable_code(current_code):
-        return current_code, "The model did not return previewable code, so the current preview was kept."
+        return current_code, "模型未返回可预览代码，已保留当前预览。"
 
     fallback = build_fallback_code(f"{message}\n\n{current_code[:2000]}")
     if _is_safe_previewable_code(fallback):
         return fallback, (
-            "The model did not return previewable code and the current code is not safe to preview. "
-            "Switched to a fallback previewable template."
+            "模型未返回可预览代码，且当前代码不适合预览。"
+            "已切换到可预览的兜底模板。"
         )
 
-    return fallback, "The model did not return previewable code. Returned a baseline fallback UI."
+    return fallback, "模型未返回可预览代码。已返回基础兜底界面。"
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -39,7 +39,7 @@ async def chat_iteration(req: ChatRequest):
             req.chat_history,
         )
         code = _strip_code_fence(await chat_completion(messages))
-        reply = "Code was updated from your instruction. Check the preview panel."
+        reply = "已根据你的指令更新代码，请查看中间预览区。"
 
         if not _is_previewable_code(code):
             retry_messages = [
@@ -47,10 +47,10 @@ async def chat_iteration(req: ChatRequest):
                 {
                     "role": "user",
                     "content": (
-                        "Your previous output was not a complete previewable React component. "
-                        "Regenerate a complete App.tsx from the current code and user instruction. "
-                        "Do not rewrite into an unrelated page unless explicitly requested. "
-                        "Must include export default and valid JSX. Output code only."
+                        "你上一次输出不是完整可预览的 React 组件。"
+                        "请基于当前代码和用户指令重新生成完整 App.tsx。"
+                        "除非用户明确要求，否则不要改成无关页面。"
+                        "必须包含 export default 和合法 JSX。仅输出代码。"
                     ),
                 },
             ]
@@ -69,8 +69,8 @@ async def chat_iteration(req: ChatRequest):
             code, reply = _fallback_chat_code(req.message, req.current_code)
         elif code.strip() == req.current_code.strip():
             reply = (
-                "No previewable change was produced in this iteration, so the current code was kept. "
-                "Please provide a more specific edit request."
+                "本次迭代未产出可预览变更，已保留当前代码。"
+                "请提供更具体的修改要求。"
             )
 
         return ChatResponse(
@@ -83,5 +83,5 @@ async def chat_iteration(req: ChatRequest):
         return ChatResponse(
             code=code,
             css=compile_tailwind_css(code),
-            reply=f"{reply} Original error: {e}",
+            reply=f"{reply} 原始错误：{e}",
         )

@@ -396,17 +396,17 @@ def _with_strict_retry_instruction(messages: list[dict], prompt: str) -> list[di
         {
             "role": "user",
             "content": (
-                "Your previous output is not usable: it looks like a placeholder, does not satisfy the requirement, "
-                "or breaks the preview canvas layout.\n\n"
-                f"User requirement:\n{prompt}\n\n"
-                "Regenerate and strictly follow these constraints:\n"
-                "1) Output only complete React + TypeScript + Tailwind component code.\n"
-                "2) Use a preview-safe root layout like `relative min-h-screen w-full overflow-hidden`.\n"
-                "3) Keep the core UI fully visible in the first screen inside a centered container.\n"
-                "4) Decorative shapes must be absolute background-only elements (pointer-events-none, blur/opacity).\n"
-                "5) Avoid oversized classes such as text-8xl/text-9xl, w-[600px], h-[500px], w-96 h-96, py-32/my-40.\n"
-                "6) Do not output placeholder demos like Todo/Hello World.\n"
-                "7) Ensure polished product-level styling, responsive layout, and accessible focus/contrast states."
+                "你上一次输出不可用：要么像占位 demo，要么不满足需求，或者破坏了预览画布布局。\n\n"
+                f"用户需求：\n{prompt}\n\n"
+                "请重新生成，并严格遵守以下约束：\n"
+                "1) 只输出完整 React + TypeScript + Tailwind 组件代码。\n"
+                "2) 使用预览安全根布局，例如 `relative min-h-screen w-full overflow-hidden`。\n"
+                "3) 核心界面必须在首屏居中完整可见。\n"
+                "4) 装饰元素必须是 absolute 背景元素（pointer-events-none、blur/opacity）。\n"
+                "5) 避免过大尺寸类：text-8xl/text-9xl、w-[600px]、h-[500px]、w-96 h-96、py-32/my-40。\n"
+                "6) 不要输出 Todo/Hello World 这类占位示例。\n"
+                "7) 视觉质量需达到产品级，具备响应式和无障碍焦点/对比度。\n"
+                "8) 页面可见文案默认使用简体中文，除非用户明确要求英文。"
             ),
         },
     ]
@@ -450,13 +450,13 @@ async def generate_code(req: GenerateRequest):
             if _is_safe_previewable_code(fallback_code):
                 code = fallback_code
             else:
-                detail = llm_error or "Model and fallback template both failed to return previewable code."
+                detail = llm_error or "模型与兜底模板都未返回可预览代码。"
                 raise HTTPException(status_code=502, detail=detail)
 
         if llm_error and code == fallback_code:
-            explanation = f"Model was unstable, fallback template was used: {llm_error}"
+            explanation = f"模型输出不稳定，已使用兜底模板：{llm_error}"
         else:
-            explanation = "Code generated" + (" with image understanding" if image_description else "")
+            explanation = "代码已生成" + ("（含图片理解）" if image_description else "")
 
         return GenerateResponse(
             code=code,

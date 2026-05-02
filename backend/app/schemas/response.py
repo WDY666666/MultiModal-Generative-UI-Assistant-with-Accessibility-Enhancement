@@ -1,5 +1,6 @@
-﻿from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ApiModel(BaseModel):
@@ -15,6 +16,10 @@ class GenerateResponse(ApiModel):
 class AnalyzeImageResponse(ApiModel):
     description: str
     layout: str
+    components: list[str] = Field(default_factory=list)
+    style: list[str] = Field(default_factory=list)
+    accessibility_hints: list[str] = Field(default_factory=list, alias="accessibilityHints")
+    prompt_suggestion: Optional[str] = Field(default=None, alias="promptSuggestion")
 
 
 class ChatResponse(ApiModel):

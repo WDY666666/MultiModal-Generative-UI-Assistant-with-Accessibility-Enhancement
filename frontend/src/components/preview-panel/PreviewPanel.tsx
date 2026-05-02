@@ -35,7 +35,7 @@ export function PreviewPanel() {
         </div>
         <div className="hidden items-center gap-2 text-[11px] text-slate-500 md:flex">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
-          Live preview
+          实时预览
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden bg-[#0d0f14]">

@@ -11,10 +11,10 @@ interface A11yIssueProps {
 }
 
 const impactConfig = {
-  critical: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
-  serious: { icon: AlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-  moderate: { icon: Info, color: 'text-yellow-700', bg: 'bg-yellow-50', border: 'border-yellow-200' },
-  minor: { icon: Info, color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
+  critical: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', label: '严重' },
+  serious: { icon: AlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', label: '高' },
+  moderate: { icon: Info, color: 'text-yellow-700', bg: 'bg-yellow-50', border: 'border-yellow-200', label: '中' },
+  minor: { icon: Info, color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', label: '低' },
 } as const
 
 export function A11yIssue({ issue }: A11yIssueProps) {
@@ -81,14 +81,14 @@ export function A11yIssue({ issue }: A11yIssueProps) {
         addChatMessages([
           {
             role: 'assistant',
-            content: `Applied one-click accessibility fix for issue: ${issue.help}`,
+            content: `已一键修复无障碍问题：${issue.help}`,
           },
         ])
       } else {
         addChatMessages([
           {
             role: 'assistant',
-            content: `Model returned non-previewable fix for ${issue.help}. Current preview was kept.`,
+            content: `模型返回的修复代码不可预览，已保留当前预览（问题：${issue.help}）。`,
           },
         ])
       }
@@ -96,7 +96,7 @@ export function A11yIssue({ issue }: A11yIssueProps) {
       addChatMessages([
         {
           role: 'assistant',
-          content: `Failed to apply one-click fix for ${issue.help}. Please retry.`,
+          content: `一键修复失败，请重试（问题：${issue.help}）。`,
         },
       ])
     } finally {
@@ -115,10 +115,10 @@ export function A11yIssue({ issue }: A11yIssueProps) {
           <div className="flex items-center gap-2">
             <span className="truncate text-xs font-medium text-foreground">{issue.help}</span>
             <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${config.color} ${config.bg}`}>
-              {issue.impact}
+              {config.label}
             </span>
           </div>
-          <p className="mt-0.5 text-[10px] text-muted-foreground">Affects {issue.nodes} element{issue.nodes === 1 ? '' : 's'}</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">影响 {issue.nodes} 个元素</p>
         </div>
         <ChevronDown
           className={`h-3.5 w-3.5 flex-shrink-0 text-muted-foreground transition-transform ${expanded ? 'rotate-180' : ''}`}
@@ -128,11 +128,11 @@ export function A11yIssue({ issue }: A11yIssueProps) {
       {expanded && (
         <div className="space-y-2 px-2.5 pb-2.5">
           <div className="rounded bg-background/50 p-2">
-            <p className="text-[10px] font-medium text-muted-foreground">Why this matters</p>
+            <p className="text-[10px] font-medium text-muted-foreground">问题说明</p>
             {isExplaining ? (
               <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Generating explanation...
+                正在生成解释...
               </div>
             ) : (
               <p className="mt-1 text-[10px] leading-relaxed text-foreground">{explanation}</p>
@@ -143,10 +143,10 @@ export function A11yIssue({ issue }: A11yIssueProps) {
             <div className="rounded bg-background/50 p-2">
               <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                 <MessageSquareText className="h-3 w-3" />
-                Suggested fix
+                修复建议
               </div>
               {isExplaining ? (
-                <p className="mt-1 text-[10px] text-muted-foreground">Preparing suggestion...</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">正在整理建议...</p>
               ) : (
                 <p className="mt-1 text-[10px] leading-relaxed text-foreground">{fixSuggestion}</p>
               )}
@@ -159,12 +159,12 @@ export function A11yIssue({ issue }: A11yIssueProps) {
             className="flex items-center gap-1.5 rounded bg-primary px-2.5 py-1.5 text-[10px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             {isFixing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
-            {isFixing ? 'Applying fix...' : 'One-click fix'}
+            {isFixing ? '正在应用修复...' : '一键修复'}
           </button>
 
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Sparkles className="h-3 w-3" />
-            Fix keeps current page structure and updates preview directly.
+            修复会尽量保持当前页面结构，并直接更新预览。
           </div>
         </div>
       )}

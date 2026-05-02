@@ -106,7 +106,7 @@ export function CopilotCodeAutoApply() {
     addChatMessages([
       {
         role: 'assistant',
-        content: 'Copilot response returned previewable TSX and it has been auto-applied to the live preview.',
+        content: '检测到 Copilot 返回可预览 TSX，已自动应用到中间预览区。',
       },
     ])
 

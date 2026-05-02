@@ -166,6 +166,17 @@ body {
   min-height: 0 !important;
 }
 
+.copilot-chat-window .copilotKitMessage {
+  word-break: break-word;
+  line-height: 1.65;
+}
+
+.copilot-chat-window .copilotKitMessageControls,
+.copilot-chat-window .copilotkit-response-completed-feedback,
+.copilot-chat-window .poweredBy {
+  display: none !important;
+}
+
 /* The right panel hosts a project-controlled CopilotKit workspace chat, so
    floating CopilotKit launchers/news banners stay hidden for a clean demo. */
 .copilotKitDevConsole,
