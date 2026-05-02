@@ -14,6 +14,20 @@ from app.services.tailwind_service import compile_tailwind_css
 router = APIRouter()
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
+ALLOWED_IMPORT_MODULES = {"react"}
+COMMON_REACT_HOOKS = (
+    "useState",
+    "useEffect",
+    "useMemo",
+    "useCallback",
+    "useRef",
+    "useReducer",
+    "useId",
+    "useTransition",
+    "useDeferredValue",
+    "useLayoutEffect",
+    "useImperativeHandle",
+)
 
 
 def _strip_code_fence(text: str) -> str:
@@ -144,8 +158,62 @@ def _needs_syntax_repair(code: str) -> bool:
     )
 
 
+def _imported_modules(code: str) -> set[str]:
+    modules = {
+        match.group(1)
+        for match in re.finditer(r"import\s+[\s\S]*?\s+from\s+['\"]([^'\"]+)['\"]", code)
+    }
+    modules.update(
+        match.group(1)
+        for match in re.finditer(r"import\s+['\"]([^'\"]+)['\"]", code)
+    )
+    return modules
+
+
+def _named_react_imports(code: str) -> set[str]:
+    imported: set[str] = set()
+    for match in re.finditer(r"import\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['\"]react['\"]", code):
+        for raw_item in match.group(1).split(","):
+            token = raw_item.strip()
+            if not token:
+                continue
+            if " as " in token:
+                token = token.split(" as ", 1)[0].strip()
+            imported.add(token)
+    return imported
+
+
+def _has_unsupported_imports(code: str) -> bool:
+    modules = _imported_modules(code)
+    return any(module not in ALLOWED_IMPORT_MODULES for module in modules)
+
+
+def _has_missing_react_hook_imports(code: str) -> bool:
+    imported_names = _named_react_imports(code)
+    has_react_namespace = bool(
+        re.search(r"import\s+\*\s+as\s+React\s+from\s+['\"]react['\"]", code)
+    )
+
+    for hook in COMMON_REACT_HOOKS:
+        if not re.search(rf"\b{hook}\s*\(", code):
+            continue
+        if re.search(rf"\bReact\.{hook}\s*\(", code):
+            continue
+        if hook in imported_names:
+            continue
+        if has_react_namespace:
+            continue
+        return True
+
+    return False
+
+
+def _has_runtime_risk(code: str) -> bool:
+    return _has_unsupported_imports(code) or _has_missing_react_hook_imports(code)
+
+
 def _is_safe_previewable_code(code: str) -> bool:
-    return _is_previewable_code(code) and not _needs_syntax_repair(code)
+    return _is_previewable_code(code) and not _needs_syntax_repair(code) and not _has_runtime_risk(code)
 
 
 async def _repair_syntax_if_needed(code: str, fallback_code: str | None = None) -> str:
@@ -159,13 +227,13 @@ async def _repair_syntax_if_needed(code: str, fallback_code: str | None = None) 
             max_tokens=4096,
         )
     except Exception:
-        if fallback_code and not _needs_syntax_repair(fallback_code):
+        if fallback_code and _is_safe_previewable_code(fallback_code):
             return fallback_code
         return code
 
     repaired_code = _strip_code_fence(repaired)
     if _needs_syntax_repair(repaired_code):
-        if fallback_code and not _needs_syntax_repair(fallback_code):
+        if fallback_code and _is_safe_previewable_code(fallback_code):
             return fallback_code
         return code
     return repaired_code
@@ -353,27 +421,46 @@ async def generate_code(req: GenerateRequest):
 
         messages = build_generate_prompt(req.prompt, image_description)
         fallback_code = build_fallback_code(req.prompt)
-        code = _strip_code_fence(await chat_completion(messages, temperature=0.35))
+        llm_error: str | None = None
 
-        if not _is_previewable_code(code) or _looks_unusable(code, req.prompt):
+        try:
+            code = _strip_code_fence(await chat_completion(messages, temperature=0.35))
+        except Exception as exc:
+            llm_error = str(exc) or "model request failed"
+            code = ""
+
+        # Keep latency predictable for slower hosted models:
+        # retry only when the first output is not previewable at all.
+        if code and not _is_previewable_code(code):
             retry_messages = _with_strict_retry_instruction(messages, req.prompt)
-            code = _strip_code_fence(await chat_completion(retry_messages, temperature=0.2))
+            try:
+                code = _strip_code_fence(await chat_completion(retry_messages, temperature=0.2))
+            except Exception as exc:
+                llm_error = llm_error or str(exc) or "model request failed"
 
         code = await _repair_syntax_if_needed(code, fallback_code=fallback_code)
 
-        if not _is_previewable_code(code) or _needs_syntax_repair(code) or _looks_unusable(code, req.prompt):
+        if (
+            not _is_previewable_code(code)
+            or _needs_syntax_repair(code)
+            or _has_runtime_risk(code)
+            or _looks_unusable(code, req.prompt)
+        ):
             if _is_safe_previewable_code(fallback_code):
                 code = fallback_code
             else:
-                raise HTTPException(
-                    status_code=502,
-                    detail="模型和本地兜底都没有返回可预览代码，请检查当前模型/接口配置后重试。",
-                )
+                detail = llm_error or "Model and fallback template both failed to return previewable code."
+                raise HTTPException(status_code=502, detail=detail)
+
+        if llm_error and code == fallback_code:
+            explanation = f"Model was unstable, fallback template was used: {llm_error}"
+        else:
+            explanation = "Code generated" + (" with image understanding" if image_description else "")
 
         return GenerateResponse(
             code=code,
             css=compile_tailwind_css(code),
-            explanation="代码已生成" + ("，已结合图片分析结果" if image_description else ""),
+            explanation=explanation,
         )
     except HTTPException:
         raise

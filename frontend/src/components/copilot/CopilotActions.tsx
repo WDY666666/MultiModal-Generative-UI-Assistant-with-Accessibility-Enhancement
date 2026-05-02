@@ -14,14 +14,13 @@ export function CopilotActions() {
   const generatedCode = useAppStore((s) => s.generatedCode)
   const a11yResults = useAppStore((s) => s.a11yResults)
   const imageDescription = useAppStore((s) => s.imageDescription)
-  const chatMessages = useAppStore((s) => s.chatMessages)
 
   const setTextPrompt = useAppStore((s) => s.setTextPrompt)
   const updateGeneratedCode = useAppStore((s) => s.updateGeneratedCode)
   const addChatMessages = useAppStore((s) => s.addChatMessages)
   const setGenerationError = useAppStore((s) => s.setGenerationError)
   const setIsGenerating = useAppStore((s) => s.setIsGenerating)
-  const setIsChatLoading = useAppStore((s) => s.setIsChatLoading)
+  const sendMessage = useAppStore((s) => s.sendMessage)
 
   useCopilotReadable(
     {
@@ -29,7 +28,7 @@ export function CopilotActions() {
       value: {
         textPrompt,
         hasGeneratedCode: Boolean(generatedCode),
-        generatedCodePreview: generatedCode.slice(0, 2000),
+        generatedCodePreview: generatedCode,
         imageDescription,
         a11yScore: a11yResults?.score ?? null,
         a11yViolations: a11yResults?.violations.map(summarizeA11yIssue) ?? [],
@@ -102,38 +101,16 @@ export function CopilotActions() {
           return 'No iteration instruction was provided.'
         }
 
-        setIsChatLoading(true)
-        addChatMessages([{ role: 'user', content: message }])
-
         try {
-          const response = await api.chat({
-            message,
-            currentCode: generatedCode,
-            chatHistory: chatMessages,
-          })
-          const candidateCode = extractCodeFromResponse(response.code)
-          if (!isPreviewableReactCode(candidateCode)) {
-            addChatMessages([
-              { role: 'assistant', content: '模型这次没有返回完整可预览代码，已保留当前预览。' },
-            ])
-            return 'The model did not return previewable code, so the current preview was kept.'
-          }
-
-          updateGeneratedCode(candidateCode, response.css)
-          addChatMessages([
-            { role: 'assistant', content: response.reply || 'CopilotKit action 已更新代码，请在预览区查看效果。' },
-          ])
+          await sendMessage(message)
           return 'Updated the generated UI and refreshed the live preview.'
         } catch (error) {
           const fallback = error instanceof Error ? error.message : '请求失败'
-          addChatMessages([{ role: 'assistant', content: `错误：${fallback}` }])
           return `Iteration failed: ${fallback}`
-        } finally {
-          setIsChatLoading(false)
         }
       },
     },
-    [generatedCode, chatMessages, setIsChatLoading, addChatMessages, updateGeneratedCode]
+    [sendMessage]
   )
 
   useCopilotAction(

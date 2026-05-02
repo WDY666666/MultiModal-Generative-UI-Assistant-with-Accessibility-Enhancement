@@ -17,6 +17,7 @@ interface AxeMessage {
   violations?: AxeViolation[]
   passes?: number
   incomplete?: number
+  runtimeError?: string
 }
 
 export function useA11yScan() {
@@ -27,6 +28,17 @@ export function useA11yScan() {
   const processResults = useCallback(
     async (data: AxeMessage) => {
       if (data.type !== 'AXE_RESULTS') return
+
+      if (data.runtimeError) {
+        setA11yResults({
+          violations: [],
+          passes: 0,
+          incomplete: 0,
+          score: 0,
+        })
+        setIsScanning(false)
+        return
+      }
 
       const violations: A11yIssue[] = (data.violations || []).map((v) => ({
         id: v.id,
@@ -88,19 +100,29 @@ export function useA11yScan() {
     return () => window.removeEventListener('message', handler)
   }, [processResults])
 
+  const getPreviewIframe = useCallback(() => {
+    const iframe = document.querySelector(
+      '.preview-runtime-iframe, .preview-sandbox .sp-preview-iframe'
+    ) as HTMLIFrameElement | null
+    if (!iframe || !iframe.isConnected || !iframe.contentWindow) {
+      return null
+    }
+    return iframe
+  }, [])
+
   const triggerScan = useCallback(() => {
     setIsScanning(true)
     const fallbackTimer = window.setTimeout(() => {
       setIsScanning(false)
     }, 5000)
 
-    const iframe = document.querySelector('.sp-preview-iframe') as HTMLIFrameElement
-    if (iframe?.contentWindow) {
+    const iframe = getPreviewIframe()
+    if (iframe) {
       iframe.contentWindow.postMessage({ type: 'RUN_AXE_SCAN' }, '*')
     } else {
       setTimeout(() => {
-        const retryIframe = document.querySelector('.sp-preview-iframe') as HTMLIFrameElement
-        if (retryIframe?.contentWindow) {
+        const retryIframe = getPreviewIframe()
+        if (retryIframe) {
           retryIframe.contentWindow.postMessage({ type: 'RUN_AXE_SCAN' }, '*')
         } else {
           window.clearTimeout(fallbackTimer)
@@ -108,7 +130,7 @@ export function useA11yScan() {
         }
       }, 3000)
     }
-  }, [setIsScanning])
+  }, [getPreviewIframe, setIsScanning])
 
   return { triggerScan }
 }
