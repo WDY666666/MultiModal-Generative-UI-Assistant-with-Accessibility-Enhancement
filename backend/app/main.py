@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import analyze, chat, copilotkit, fix, generate
 
 app = FastAPI(
-    title="多模态生成式 UI 助手 API",
-    description="支持多模态输入的 Generative UI 后端服务",
+    title="Multimodal Generative UI Assistant API",
+    description="Backend service for multimodal UI generation, preview iteration, and accessibility fixes.",
     version="1.0.0",
 )
 
@@ -25,7 +25,7 @@ app.include_router(copilotkit.router, prefix="/api", tags=["copilotkit"])
 
 @app.get("/")
 async def root():
-    return {"message": "多模态生成式 UI 助手 API", "version": "1.0.0"}
+    return {"message": "Multimodal Generative UI Assistant API", "version": "1.0.0"}
 
 
 @app.get("/health")

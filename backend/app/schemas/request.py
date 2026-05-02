@@ -28,6 +28,7 @@ class ChatRequest(ApiModel):
     message: str
     current_code: str = Field(alias="currentCode")
     chat_history: list[ChatMessage] = Field(default_factory=list, alias="chatHistory")
+    image_description: Optional[str] = Field(default=None, alias="imageDescription")
 
 
 class A11yIssue(ApiModel):
@@ -42,3 +43,8 @@ class A11yIssue(ApiModel):
 class FixRequest(ApiModel):
     issue: A11yIssue
     current_code: str = Field(alias="currentCode")
+
+
+class ExplainIssueRequest(ApiModel):
+    issue: A11yIssue
+    current_code: Optional[str] = Field(default=None, alias="currentCode")

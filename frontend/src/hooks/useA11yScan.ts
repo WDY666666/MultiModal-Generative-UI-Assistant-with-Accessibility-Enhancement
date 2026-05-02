@@ -1,6 +1,5 @@
 ﻿import { useEffect, useCallback } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
-import { api } from '@/services/api'
 import type { A11yResults, A11yIssue } from '@/types'
 
 interface AxeViolation {
@@ -21,13 +20,14 @@ interface AxeMessage {
 }
 
 export function useA11yScan() {
-  const setA11yResults = useAppStore((s) => s.setA11yResults)
-  const setIsScanning = useAppStore((s) => s.setIsScanning)
-  const generatedCode = useAppStore((s) => s.generatedCode)
+  const setA11yResults = useAppStore((state) => state.setA11yResults)
+  const setIsScanning = useAppStore((state) => state.setIsScanning)
 
   const processResults = useCallback(
-    async (data: AxeMessage) => {
-      if (data.type !== 'AXE_RESULTS') return
+    (data: AxeMessage) => {
+      if (data.type !== 'AXE_RESULTS') {
+        return
+      }
 
       if (data.runtimeError) {
         setA11yResults({
@@ -40,54 +40,29 @@ export function useA11yScan() {
         return
       }
 
-      const violations: A11yIssue[] = (data.violations || []).map((v) => ({
-        id: v.id,
-        impact: v.impact as A11yIssue['impact'],
-        description: v.description,
-        help: v.help,
-        helpUrl: v.helpUrl,
-        nodes: v.nodes.length,
+      const violations: A11yIssue[] = (data.violations || []).map((violation) => ({
+        id: violation.id,
+        impact: violation.impact as A11yIssue['impact'],
+        description: violation.description,
+        help: violation.help,
+        helpUrl: violation.helpUrl,
+        nodes: violation.nodes.length,
       }))
+
+      const passes = data.passes || 0
+      const total = passes + violations.length
 
       const results: A11yResults = {
         violations,
-        passes: data.passes || 0,
+        passes,
         incomplete: data.incomplete || 0,
-        score:
-          data.passes && data.passes + violations.length > 0
-            ? Math.round((data.passes / (data.passes + violations.length)) * 100)
-            : 100,
+        score: total > 0 ? Math.round((passes / total) * 100) : 100,
       }
 
       setA11yResults(results)
       setIsScanning(false)
-
-      if (violations.length > 0) {
-        try {
-          const explained = await Promise.all(
-            violations.map(async (issue) => {
-              try {
-                const res = await api.fix({
-                  issue,
-                  currentCode: generatedCode,
-                })
-                return {
-                  ...issue,
-                  explanation: res.explanation,
-                  fixCode: res.fixCode,
-                }
-              } catch {
-                return issue
-              }
-            })
-          )
-          setA11yResults({ ...results, violations: explained })
-        } catch {
-          // Explanation failures should not block the main scanning flow.
-        }
-      }
     },
-    [setA11yResults, setIsScanning, generatedCode]
+    [setA11yResults, setIsScanning]
   )
 
   useEffect(() => {
@@ -119,17 +94,18 @@ export function useA11yScan() {
     const iframe = getPreviewIframe()
     if (iframe) {
       iframe.contentWindow.postMessage({ type: 'RUN_AXE_SCAN' }, '*')
-    } else {
-      setTimeout(() => {
-        const retryIframe = getPreviewIframe()
-        if (retryIframe) {
-          retryIframe.contentWindow.postMessage({ type: 'RUN_AXE_SCAN' }, '*')
-        } else {
-          window.clearTimeout(fallbackTimer)
-          setIsScanning(false)
-        }
-      }, 3000)
+      return
     }
+
+    setTimeout(() => {
+      const retryIframe = getPreviewIframe()
+      if (retryIframe) {
+        retryIframe.contentWindow.postMessage({ type: 'RUN_AXE_SCAN' }, '*')
+      } else {
+        window.clearTimeout(fallbackTimer)
+        setIsScanning(false)
+      }
+    }, 3000)
   }, [getPreviewIframe, setIsScanning])
 
   return { triggerScan }

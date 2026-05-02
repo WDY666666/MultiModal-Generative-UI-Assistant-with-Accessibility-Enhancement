@@ -100,6 +100,7 @@ def build_generate_prompt(user_prompt: str, image_description: str | None = None
 def build_chat_prompt(
     message: str,
     current_code: str,
+    image_description: str | None = None,
     chat_history: list[dict] | None = None,
 ) -> list[dict]:
     compact_history: list[dict] = []
@@ -114,6 +115,13 @@ def build_chat_prompt(
             if role in {"user", "assistant"} and content:
                 compact_history.append({"role": role, "content": content[:1200]})
 
+    image_context = ""
+    if image_description:
+        image_context = (
+            "\n\n参考图片识别信息（用于保持布局一致性，可按用户指令覆盖）：\n"
+            f"{image_description.strip()}"
+        )
+
     return [
         {"role": "system", "content": CHAT_SYSTEM_PROMPT},
         *compact_history,
@@ -121,6 +129,7 @@ def build_chat_prompt(
             "role": "user",
             "content": (
                 f"当前代码：\n```tsx\n{current_code}\n```\n\n"
+                f"{image_context}\n"
                 f"请基于以上代码，根据以下指令进行修改：\n{message}\n"
                 "请优先进行最小必要修改，除非我明确要求换风格或换页面。\n"
                 "输出修改后的完整代码，不要解释。"
@@ -163,6 +172,36 @@ def build_fix_prompt(issue_description: str, current_code: str) -> list[dict]:
                 f"当前代码：\n```tsx\n{current_code}\n```\n\n"
                 f"无障碍扫描发现以下问题：\n{issue_description}\n\n"
                 "请修复以上问题，并保持视觉设计质量不下降，输出修改后的完整代码。只输出代码，不要解释。"
+            ),
+        },
+    ]
+
+
+def build_issue_explanation_prompt(issue_description: str, current_code: str | None = None) -> list[dict]:
+    code_context = ""
+    if current_code:
+        code_context = (
+            "当前组件代码片段（用于给出更贴合的修复建议）：\n"
+            f"```tsx\n{current_code[:3000]}\n```\n\n"
+        )
+
+    return [
+        {
+            "role": "system",
+            "content": (
+                "你是前端无障碍专家。请基于问题描述给出清晰解释和可执行修复建议。"
+                "输出必须是 JSON，格式为："
+                '{"explanation":"...","fixSuggestion":"..."}。'
+                "不要输出任何额外文本。"
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"{code_context}"
+                f"无障碍问题：\n{issue_description}\n\n"
+                "请返回 JSON："
+                '{"explanation":"用通俗语言解释风险","fixSuggestion":"给出可执行的修复步骤"}'
             ),
         },
     ]

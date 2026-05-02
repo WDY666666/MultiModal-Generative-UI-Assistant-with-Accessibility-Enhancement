@@ -32,7 +32,7 @@ export function ChatWindow() {
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {chatMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-            生成 UI 后，可通过对话继续迭代修改。
+            生成 UI 后，可通过对话继续迭代修改（会自动结合当前代码与图片识别信息）。
           </div>
         ) : (
           chatMessages.map((msg) => (

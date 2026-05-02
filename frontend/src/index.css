@@ -159,18 +159,26 @@ body {
   min-height: 0;
 }
 
+.copilot-chat-window [class*='copilotKitWindow'],
+.copilot-chat-window [class*='copilotKitChat'],
+.copilot-chat-window [class*='copilotKitMessages'] {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
 /* The right panel hosts a project-controlled CopilotKit workspace chat, so
    floating CopilotKit launchers/news banners stay hidden for a clean demo. */
 .copilotKitDevConsole,
 .copilotKitPopup,
 .copilotKitSidebar,
 .copilotKitButton,
+.copilotKitFloatingButton,
+.copilotKitPopupButton,
+.copilotkit-popup-button,
+[data-copilotkit-popup],
+[data-copilotkit-launcher],
 cpk-web-inspector,
 .announcement-preview,
-.announcement-preview__arrow,
-[class*="copilotKit"][class*="Banner"],
-[class*="copilotKit"][class*="Launcher"],
-[class*="copilotKit"][class*="Popup"],
-[class*="copilotKit"][class*="Button"] {
+.announcement-preview__arrow {
   display: none !important;
 }

@@ -99,6 +99,11 @@ export function A11yReport() {
       </div>
 
       <div className="space-y-2">
+        {hasViolations && (
+          <p className="text-[11px] text-muted-foreground">
+            展开每条问题可查看 AI 解释与修复建议，再按需一键修复。
+          </p>
+        )}
         {a11yResults.violations.map((issue) => (
           <A11yIssue key={issue.id} issue={issue} />
         ))}

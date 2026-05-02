@@ -37,7 +37,7 @@ async def chat_completion(
             response.raise_for_status()
             data = response.json()
     except httpx.TimeoutException as exc:
-        raise RuntimeError("LLM 请求超时（45 秒），请稍后重试或切换模型。") from exc
+        raise RuntimeError("LLM request timed out (90s). Please retry or use a faster model.") from exc
     except httpx.HTTPStatusError as exc:
         detail = ""
         try:

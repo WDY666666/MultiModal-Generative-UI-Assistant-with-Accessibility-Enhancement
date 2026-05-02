@@ -1,34 +1,85 @@
-﻿from app.services.llm_service import chat_completion
-from app.services.prompt_builder import build_fix_prompt
+﻿import json
+import re
+
+from app.services.llm_service import chat_completion
+from app.services.prompt_builder import build_fix_prompt, build_issue_explanation_prompt
 
 
 async def explain_issues(violations: list[dict]) -> list[dict]:
     explanations = []
     for violation in violations:
-        prompt = f"""请用简洁的中文解释以下无障碍问题，并给出修复建议：
-
-问题：{violation.get('help', '')}
-影响程度：{violation.get('impact', '')}
-描述：{violation.get('description', '')}
-影响元素数量：{len(violation.get('nodes', []))}
-
-请用以下格式回答：
-解释：[用通俗易懂的语言解释这个问题为什么重要]
-建议：[给出具体的修复建议]
-"""
-
-        result = await chat_completion(
-            [{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=500,
+        nodes = violation.get("nodes", [])
+        node_count = len(nodes) if isinstance(nodes, list) else int(nodes or 0)
+        issue_description = (
+            f"Issue ID: {violation.get('id', '')}\n"
+            f"Impact: {violation.get('impact', '')}\n"
+            f"Description: {violation.get('description', '')}\n"
+            f"Help: {violation.get('help', '')}\n"
+            f"Affected nodes: {node_count}"
         )
 
-        explanations.append({
-            "id": violation.get("id", ""),
-            "explanation": result,
-        })
+        detail = await explain_issue(issue_description)
+        explanations.append(
+            {
+                "id": violation.get("id", ""),
+                "explanation": detail["explanation"],
+                "fixSuggestion": detail["fixSuggestion"],
+            }
+        )
 
     return explanations
+
+
+def _extract_json_payload(text: str) -> dict[str, str]:
+    source = text.strip()
+    if not source:
+        return {}
+
+    try:
+        parsed = json.loads(source)
+        if isinstance(parsed, dict):
+            return {str(k): str(v) for k, v in parsed.items()}
+    except Exception:
+        pass
+
+    match = re.search(r"\{[\s\S]*\}", source)
+    if not match:
+        return {}
+
+    try:
+        parsed = json.loads(match.group(0))
+        if isinstance(parsed, dict):
+            return {str(k): str(v) for k, v in parsed.items()}
+    except Exception:
+        return {}
+
+    return {}
+
+
+async def explain_issue(issue_description: str, current_code: str | None = None) -> dict[str, str]:
+    result = await chat_completion(
+        build_issue_explanation_prompt(issue_description, current_code),
+        temperature=0.2,
+        max_tokens=500,
+    )
+    payload = _extract_json_payload(result)
+
+    explanation = payload.get("explanation", "").strip()
+    fix_suggestion = payload.get("fixSuggestion", "").strip()
+
+    if not explanation:
+        explanation = (
+            "This issue may prevent keyboard users or screen-reader users from using part of the UI effectively."
+        )
+    if not fix_suggestion:
+        fix_suggestion = (
+            "Use the axe hint to add semantic labels/roles and strengthen focus or contrast where needed."
+        )
+
+    return {
+        "explanation": explanation,
+        "fixSuggestion": fix_suggestion,
+    }
 
 
 async def generate_fix(issue_description: str, current_code: str) -> dict:
@@ -37,5 +88,5 @@ async def generate_fix(issue_description: str, current_code: str) -> dict:
 
     return {
         "fixCode": fix_code,
-        "explanation": "已根据无障碍扫描结果自动生成修复后的代码。",
+        "explanation": "Applied an accessibility-oriented code fix for the selected issue.",
     }

@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+﻿import { create } from 'zustand'
 import { api } from '@/services/api'
 import { fileToBase64, generateId, extractCodeFromResponse, isPreviewableReactCode } from '@/lib/utils'
 import { DEFAULT_GENERATED_CODE, DEFAULT_PREVIEW_CSS } from '@/lib/constants'
@@ -83,25 +83,30 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   generate: async () => {
     const { textPrompt, uploadedImage, imageDescription } = get()
-    if (!textPrompt.trim() && !uploadedImage) return
+    if (!textPrompt.trim() && !uploadedImage) {
+      return
+    }
 
     set({ isGenerating: true, generationError: null })
 
     try {
       const imageBase64 = uploadedImage ? await fileToBase64(uploadedImage) : undefined
       const fullPrompt = imageDescription
-        ? `${textPrompt}\n\n参考图片中识别到的布局信息：\n${imageDescription}`
+        ? `${textPrompt}\n\nDetected layout hints from uploaded image:\n${imageDescription}`
         : textPrompt
 
       const response = await api.generate({
         prompt: fullPrompt,
         imageBase64,
       })
+
       const candidateCode = extractCodeFromResponse(response.code)
-      const code = isPreviewableReactCode(candidateCode) ? candidateCode : DEFAULT_GENERATED_CODE
-      const assistantContent = isPreviewableReactCode(candidateCode)
-        ? response.explanation || '代码已生成，请在预览区查看效果。'
-        : '模型这次没有返回完整可预览代码，已显示本地兜底预览，建议换一个更具体的描述后重试。'
+      const hasPreviewableCode = isPreviewableReactCode(candidateCode)
+      const code = hasPreviewableCode ? candidateCode : DEFAULT_GENERATED_CODE
+
+      const assistantContent = hasPreviewableCode
+        ? response.explanation || 'Code generated successfully. Check the preview panel.'
+        : 'The model did not return complete previewable code. A local fallback preview was loaded. Please retry with a more specific prompt.'
 
       set({
         generatedCode: code,
@@ -110,20 +115,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         generationError: null,
         a11yResults: null,
         chatMessages: appendMessages(get().chatMessages, [
-          { role: 'user', content: textPrompt },
+          { role: 'user', content: textPrompt || '[Image-driven generation request]' },
           { role: 'assistant', content: assistantContent },
         ]),
       })
     } catch (error) {
       set({
         isGenerating: false,
-        generationError: error instanceof Error ? error.message : '生成失败',
+        generationError: error instanceof Error ? error.message : 'Generation failed',
       })
     }
   },
 
   sendMessage: async (message) => {
-    const { generatedCode, chatMessages } = get()
+    const { generatedCode, chatMessages, imageDescription } = get()
     const userMsg: ChatMessage = {
       id: generateId(),
       role: 'user',
@@ -138,28 +143,32 @@ export const useAppStore = create<AppState>((set, get) => ({
         message,
         currentCode: generatedCode,
         chatHistory: [...chatMessages, userMsg],
+        imageDescription: imageDescription || undefined,
       })
+
       const candidateCode = extractCodeFromResponse(response.code)
       const code = isPreviewableReactCode(candidateCode) ? candidateCode : ''
       const nextCode = code || generatedCode || DEFAULT_GENERATED_CODE
+
       const reply = code
-        ? response.reply
-        : '模型这次没有返回完整可预览代码，已保留当前预览。请换一个更具体的修改指令重试。'
+        ? response.reply || 'Code updated. Check the preview panel.'
+        : 'The model did not return complete previewable code. Current preview was kept. Please retry with a more specific edit instruction.'
 
       set({
         generatedCode: nextCode,
         generatedCss: response.css || get().generatedCss,
         isChatLoading: false,
         a11yResults: null,
-        chatMessages: appendMessages(get().chatMessages, [
-          { role: 'assistant', content: reply || '代码已更新，请在预览区查看效果。' },
-        ]),
+        chatMessages: appendMessages(get().chatMessages, [{ role: 'assistant', content: reply }]),
       })
     } catch (error) {
       set({
         isChatLoading: false,
         chatMessages: appendMessages(get().chatMessages, [
-          { role: 'assistant', content: `错误：${error instanceof Error ? error.message : '请求失败'}` },
+          {
+            role: 'assistant',
+            content: `Error: ${error instanceof Error ? error.message : 'Request failed'}`,
+          },
         ]),
       })
     }
@@ -174,8 +183,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       a11yResults: null,
     })),
   setGeneratedCss: (css) => set({ generatedCss: css }),
-  addChatMessages: (messages) =>
-    set({ chatMessages: appendMessages(get().chatMessages, messages) }),
+  addChatMessages: (messages) => set({ chatMessages: appendMessages(get().chatMessages, messages) }),
   setGenerationError: (error) => set({ generationError: error }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setIsChatLoading: (isChatLoading) => set({ isChatLoading }),

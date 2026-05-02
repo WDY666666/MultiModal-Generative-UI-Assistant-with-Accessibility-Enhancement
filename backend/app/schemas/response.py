@@ -27,3 +27,8 @@ class FixResponse(ApiModel):
     fix_code: str = Field(alias="fixCode")
     explanation: str
     css: Optional[str] = None
+
+
+class ExplainIssueResponse(ApiModel):
+    explanation: str
+    fix_suggestion: Optional[str] = Field(default=None, alias="fixSuggestion")

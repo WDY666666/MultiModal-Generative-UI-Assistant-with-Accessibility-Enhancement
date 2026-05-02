@@ -8,6 +8,8 @@ import type {
   ChatResponse,
   FixRequest,
   FixResponse,
+  ExplainIssueRequest,
+  ExplainIssueResponse,
 } from '@/types'
 
 async function post<T>(endpoint: string, body: unknown, timeoutMs = 65000): Promise<T> {
@@ -50,4 +52,7 @@ export const api = {
 
   fix: (data: FixRequest) =>
     post<FixResponse>('/fix', data, 140000),
+
+  explainIssue: (data: ExplainIssueRequest) =>
+    post<ExplainIssueResponse>('/a11y/explain', data, 90000),
 }

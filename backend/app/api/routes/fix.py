@@ -1,22 +1,46 @@
-from fastapi import APIRouter
-from app.schemas.request import FixRequest
-from app.schemas.response import FixResponse
-from app.services.a11y_service import generate_fix
+﻿from fastapi import APIRouter
+
 from app.api.routes.generate import _is_safe_previewable_code, _repair_syntax_if_needed, _strip_code_fence
+from app.schemas.request import ExplainIssueRequest, FixRequest
+from app.schemas.response import ExplainIssueResponse, FixResponse
+from app.services.a11y_service import explain_issue, generate_fix
 from app.services.fallback_templates import build_fallback_code
 from app.services.tailwind_service import compile_tailwind_css
 
 router = APIRouter()
 
 
+@router.post("/a11y/explain", response_model=ExplainIssueResponse)
+async def explain_a11y_issue(req: ExplainIssueRequest):
+    issue_description = (
+        f"Issue ID: {req.issue.id}\n"
+        f"Impact: {req.issue.impact}\n"
+        f"Description: {req.issue.description}\n"
+        f"Help: {req.issue.help}\n"
+        f"Affected elements: {req.issue.nodes}"
+    )
+    try:
+        result = await explain_issue(issue_description, req.current_code)
+        return ExplainIssueResponse(**result)
+    except Exception:
+        return ExplainIssueResponse(
+            explanation=(
+                "This accessibility issue can reduce usability for keyboard users or assistive technologies."
+            ),
+            fixSuggestion=(
+                "Follow the axe recommendation and add/adjust semantic labels, roles, contrast, and focus states."
+            ),
+        )
+
+
 @router.post("/fix", response_model=FixResponse)
 async def fix_issue(req: FixRequest):
     try:
         issue_description = (
-            f"问题 ID: {req.issue.id}\n"
-            f"影响程度: {req.issue.impact}\n"
-            f"描述: {req.issue.description}\n"
-            f"帮助: {req.issue.help}"
+            f"Issue ID: {req.issue.id}\n"
+            f"Impact: {req.issue.impact}\n"
+            f"Description: {req.issue.description}\n"
+            f"Help: {req.issue.help}"
         )
         result = await generate_fix(issue_description, req.current_code)
         fixed_code = await _repair_syntax_if_needed(
@@ -24,16 +48,20 @@ async def fix_issue(req: FixRequest):
             fallback_code=build_fallback_code(issue_description),
         )
         if not _is_safe_previewable_code(fixed_code):
-            fixed_code = req.current_code if _is_safe_previewable_code(req.current_code) else build_fallback_code(issue_description)
-            result["explanation"] = "模型这次没有返回完整可预览修复代码，已保留可预览版本。"
+            fixed_code = (
+                req.current_code
+                if _is_safe_previewable_code(req.current_code)
+                else build_fallback_code(issue_description)
+            )
+            result["explanation"] = "The model did not return previewable fix code. A preview-safe version was kept."
 
         result["fixCode"] = fixed_code
         result["css"] = compile_tailwind_css(fixed_code)
         return FixResponse(**result)
-    except Exception as e:
+    except Exception as error:
         fallback = req.current_code if _is_safe_previewable_code(req.current_code) else build_fallback_code(req.issue.id)
         return FixResponse(
             fixCode=fallback,
-            explanation=f"模型修复失败，已保留可预览版本。原始错误：{e}",
+            explanation=f"Automatic accessibility fix failed. Kept a preview-safe version. Original error: {error}",
             css=compile_tailwind_css(fallback),
         )

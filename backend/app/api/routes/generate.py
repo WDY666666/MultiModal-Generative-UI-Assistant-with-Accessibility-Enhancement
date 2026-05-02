@@ -396,16 +396,17 @@ def _with_strict_retry_instruction(messages: list[dict], prompt: str) -> list[di
         {
             "role": "user",
             "content": (
-                "上一次输出不可用：它像占位示例、没有满足用户需求，或元素尺寸失控撑爆了中间预览画布。"
-                "请重新生成，并且必须严格匹配下面的需求，不要生成 Todo、Hello world 或无关示例。\n\n"
-                f"用户需求：{prompt}\n\n"
-                "必须按类似 VSCode WebView 的中间画布生成：根节点使用 relative min-h-screen w-full overflow-hidden，"
-                "核心界面首屏完整可见，主内容放进 relative z-10、mx-auto、max-w-* 的容器。"
-                "装饰只能是 absolute 背景并带 pointer-events-none/opacity/blur，不能在普通文档流里放巨大锁、巨大 SVG 或巨大插画。"
-                "禁止 text-8xl/text-9xl、w-[600px]/h-[500px]、w-96 h-96、py-32/my-40 等撑爆预览的尺寸。"
-                "必须生成有真实产品质感的页面：完整布局、响应式、Tailwind 样式密集且精致，"
-                "包含渐变/纹理/卡片/阴影/圆角/hover/focus 状态，不能输出浏览器默认样式。"
-                "只输出完整的 React + TypeScript + Tailwind 组件代码。"
+                "Your previous output is not usable: it looks like a placeholder, does not satisfy the requirement, "
+                "or breaks the preview canvas layout.\n\n"
+                f"User requirement:\n{prompt}\n\n"
+                "Regenerate and strictly follow these constraints:\n"
+                "1) Output only complete React + TypeScript + Tailwind component code.\n"
+                "2) Use a preview-safe root layout like `relative min-h-screen w-full overflow-hidden`.\n"
+                "3) Keep the core UI fully visible in the first screen inside a centered container.\n"
+                "4) Decorative shapes must be absolute background-only elements (pointer-events-none, blur/opacity).\n"
+                "5) Avoid oversized classes such as text-8xl/text-9xl, w-[600px], h-[500px], w-96 h-96, py-32/my-40.\n"
+                "6) Do not output placeholder demos like Todo/Hello World.\n"
+                "7) Ensure polished product-level styling, responsive layout, and accessible focus/contrast states."
             ),
         },
     ]

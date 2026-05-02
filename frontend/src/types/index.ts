@@ -50,6 +50,7 @@ export interface ChatRequest {
   message: string
   currentCode: string
   chatHistory: ChatMessage[]
+  imageDescription?: string
 }
 
 export interface ChatResponse {
@@ -67,4 +68,14 @@ export interface FixResponse {
   fixCode: string
   explanation: string
   css?: string
+}
+
+export interface ExplainIssueRequest {
+  issue: A11yIssue
+  currentCode?: string
+}
+
+export interface ExplainIssueResponse {
+  explanation: string
+  fixSuggestion?: string
 }

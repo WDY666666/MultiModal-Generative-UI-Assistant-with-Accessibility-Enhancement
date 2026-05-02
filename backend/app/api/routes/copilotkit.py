@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from typing import Any, AsyncIterator
 from uuid import uuid4
@@ -6,7 +7,9 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from app.api.routes.generate import _is_previewable_code, _strip_code_fence
 from app.services.llm_service import chat_completion
+from app.services.prompt_builder import build_chat_prompt
 
 router = APIRouter()
 
@@ -58,26 +61,117 @@ def _extract_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     return messages
 
 
+def _latest_user_message(messages: list[dict[str, str]]) -> str:
+    for message in reversed(messages):
+        if message.get("role") == "user":
+            return message.get("content", "").strip()
+    return ""
+
+
+def _find_code_block(text: str) -> str:
+    block = re.search(r"```(?:tsx?|jsx?)?\s*([\s\S]*?)```", text)
+    if block:
+        return block.group(1).strip()
+    return ""
+
+
+def _extract_code_candidate(text: str) -> str:
+    if not text:
+        return ""
+
+    block = _find_code_block(text)
+    if block and "export default" in block:
+        return block
+
+    if "export default" in text and "className" in text:
+        return text.strip()
+
+    return ""
+
+
+def _extract_workspace_code(payload: dict[str, Any], messages: list[dict[str, str]]) -> str:
+    key_hints = {"generatedcodepreview", "generatedcode", "currentcode", "code", "tsx", "jsx"}
+    found: list[str] = []
+
+    def walk(node: Any, depth: int = 0):
+        if depth > 6:
+            return
+        if isinstance(node, dict):
+            for key, value in node.items():
+                key_lower = str(key).lower()
+                if isinstance(value, str):
+                    candidate = _extract_code_candidate(value)
+                    if candidate and (key_lower in key_hints or "export default" in candidate):
+                        found.append(candidate)
+                else:
+                    walk(value, depth + 1)
+            return
+
+        if isinstance(node, list):
+            for item in node[:80]:
+                walk(item, depth + 1)
+
+    walk(payload)
+    for message in messages:
+        candidate = _extract_code_candidate(message.get("content", ""))
+        if candidate:
+            found.append(candidate)
+
+    for candidate in reversed(found):
+        if "export default" in candidate and ("className" in candidate or "return (" in candidate):
+            return candidate
+    return ""
+
+
 async def _build_agent_reply(payload: dict[str, Any]) -> str:
     messages = _extract_messages(payload)
     if not messages:
-        return "我已经连接到 CopilotKit Runtime。请在左侧输入需求生成 UI，或描述你想迭代的界面。"
+        return (
+            "CopilotKit runtime is connected. "
+            "Describe what you want to generate or how you want to iterate the current UI."
+        )
+
+    latest_user = _latest_user_message(messages)
+    workspace_code = _extract_workspace_code(payload, messages)
+
+    if latest_user and workspace_code:
+        try:
+            iter_messages = build_chat_prompt(
+                latest_user,
+                workspace_code,
+                None,
+                [m for m in messages if m.get("role") in {"user", "assistant"}],
+            )
+            candidate = _strip_code_fence(
+                await chat_completion(iter_messages, temperature=0.25, max_tokens=2400)
+            )
+            if _is_previewable_code(candidate):
+                return (
+                    "I used the current workspace code as context and generated an updated previewable component. "
+                    "To apply it automatically to the live preview, use the right-side iteration panel "
+                    "or run the `iterateGeneratedUI` action.\n\n"
+                    f"```tsx\n{candidate}\n```"
+                )
+        except Exception:
+            # Fall back to conversational assistance below.
+            pass
 
     system_message = {
         "role": "system",
         "content": (
-            "你是多模态生成式 UI 助手项目中的 CopilotKit AG-UI 代理。"
-            "请用简洁中文回答，重点帮助用户完成 React + TypeScript + Tailwind UI 生成、"
-            "Sandpack 预览、axe-core 无障碍检查和修复闭环。"
-            "不要要求用户重复粘贴当前代码；你可以基于前端通过 useCopilotReadable 暴露的状态进行回答。"
-            "你当前不能直接读取 Sandpack iframe 的像素级截图；如需自动看图识别，需要额外的截图采集和视觉模型链路。"
-            "如果用户要真正生成或修改代码，请提醒其也可以使用页面左侧生成区或右侧聊天迭代区。"
+            "You are the CopilotKit workspace assistant for this project. "
+            "Always ground your answer in the current workspace context when available. "
+            "Prioritize actionable guidance for React + TypeScript + Tailwind generation, "
+            "preview stability, and accessibility fixes. Keep answers concise and practical."
         ),
     }
     try:
         return await chat_completion([system_message, *messages], temperature=0.4, max_tokens=1024)
     except Exception:
-        return "CopilotKit Runtime 已连接，但当前 Mimo 模型服务不可用。请先确认 token-plan-cn 接口配置正确且模型可用。"
+        return (
+            "CopilotKit runtime is connected, but the upstream model call failed. "
+            "Please verify the model endpoint, key, and network availability."
+        )
 
 
 async def _stream_agent_run(payload: dict[str, Any]) -> AsyncIterator[str]:

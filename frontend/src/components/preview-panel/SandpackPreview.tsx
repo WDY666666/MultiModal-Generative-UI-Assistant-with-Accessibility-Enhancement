@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+﻿import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as ReactRuntime from 'react'
 import * as ReactDOMClient from 'react-dom/client'
@@ -125,7 +125,7 @@ function buildPreviewDocument(runtimeScript: string, css: string) {
   const safeScript = escapeInlineScript(runtimeScript)
 
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -264,26 +264,29 @@ export function SandpackPreview() {
   const stableRef = useRef({ code: generatedCode, css: generatedCss || BASE_CSS })
   const handledFailedCodeRef = useRef<string | null>(null)
 
-  const rollbackToStableCode = useCallback((message: string) => {
-    const failedCode = currentCodeRef.current
-    if (handledFailedCodeRef.current === failedCode) {
-      return
-    }
+  const rollbackToStableCode = useCallback(
+    (message: string) => {
+      const failedCode = currentCodeRef.current
+      if (handledFailedCodeRef.current === failedCode) {
+        return
+      }
 
-    handledFailedCodeRef.current = failedCode
-    setRuntimeError(message)
+      handledFailedCodeRef.current = failedCode
+      setRuntimeError(message)
 
-    const stable = stableRef.current
-    if (stable.code && stable.code !== failedCode) {
-      updateGeneratedCode(stable.code, stable.css)
-      addChatMessages([
-        {
-          role: 'assistant',
-          content: `检测到预览运行错误，已自动回退到上一版可预览代码：${message}`,
-        },
-      ])
-    }
-  }, [addChatMessages, updateGeneratedCode])
+      const stable = stableRef.current
+      if (stable.code && stable.code !== failedCode) {
+        updateGeneratedCode(stable.code, stable.css)
+        addChatMessages([
+          {
+            role: 'assistant',
+            content: `Preview failed and was auto-rolled back to the previous stable code: ${message}`,
+          },
+        ])
+      }
+    },
+    [addChatMessages, updateGeneratedCode]
+  )
 
   useEffect(() => {
     currentCodeRef.current = generatedCode
@@ -315,7 +318,7 @@ export function SandpackPreview() {
         const looksBlank = rootHtmlLength <= MIN_RENDERED_HTML_LENGTH && rootTextLength <= 1
 
         if (looksBlank) {
-          rollbackToStableCode('预览返回空内容，已自动回退到上一版可预览代码。')
+          rollbackToStableCode('Preview rendered blank output.')
           return
         }
 
@@ -326,7 +329,7 @@ export function SandpackPreview() {
       }
 
       if (data.type === 'PREVIEW_RUNTIME_ERROR') {
-        const message = String((data as { message?: string }).message || '预览运行失败')
+        const message = String((data as { message?: string }).message || 'Preview runtime failed.')
         rollbackToStableCode(message)
       }
     }
@@ -350,6 +353,18 @@ export function SandpackPreview() {
     }
   }, [generatedCode, generatedCss])
 
+  const diagnosticsSignature = previewState.diagnostics.join('\n')
+
+  useEffect(() => {
+    if (!diagnosticsSignature) {
+      return
+    }
+
+    rollbackToStableCode(
+      `Generated TSX still has syntax errors. ${previewState.diagnostics[0] ?? 'Please retry with a more specific instruction.'}`
+    )
+  }, [diagnosticsSignature, previewState.diagnostics, rollbackToStableCode])
+
   return (
     <div className="preview-stage relative h-full min-h-0 overflow-hidden bg-white">
       <iframe
@@ -363,11 +378,11 @@ export function SandpackPreview() {
         <div className="absolute inset-4 z-10 overflow-auto rounded-xl border border-red-400/40 bg-red-950/95 p-4 text-xs text-red-100 shadow-xl">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <AlertTriangle className="h-4 w-4" />
-            预览运行时错误
+            Preview runtime error
           </div>
           <p className="text-[11px] leading-relaxed text-red-200">{runtimeError}</p>
           <p className="mt-2 text-[11px] leading-relaxed text-red-300/90">
-            已尝试自动回退到上一版可预览代码；你也可以点击右下角“重载预览”再次检查。
+            The preview was rolled back to the previous stable version.
           </p>
         </div>
       )}
@@ -376,7 +391,7 @@ export function SandpackPreview() {
         <div className="absolute inset-4 z-10 overflow-auto rounded-xl border border-red-400/40 bg-red-950/95 p-4 text-xs text-red-100 shadow-xl">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <AlertTriangle className="h-4 w-4" />
-            生成代码存在语法问题，暂时无法预览
+            Generated code has syntax issues and cannot be previewed
           </div>
           <pre className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-red-200">
             {previewState.diagnostics.join('\n')}
@@ -390,7 +405,7 @@ export function SandpackPreview() {
         className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white/90 px-2 py-1 text-[11px] font-medium text-slate-700 shadow hover:bg-white"
       >
         <RefreshCw className="h-3.5 w-3.5" />
-        重载预览
+        Reload Preview
       </button>
     </div>
   )
