@@ -99,28 +99,135 @@ LOGIN_FALLBACK_CODE = """export default function App() {
 
 
 DASHBOARD_FALLBACK_CODE = """const courses = [
-  { title: 'React 组件设计', progress: '82%', status: '继续学习' },
-  { title: 'Tailwind 可访问样式', progress: '64%', status: '今日任务' },
-  { title: '产品原型评审', progress: '41%', status: '待完成' },
+  { title: 'React Component Design', progress: '82%', status: 'Keep learning' },
+  { title: 'Tailwind Accessibility Styles', progress: '64%', status: 'Today task' },
+  { title: 'Product Prototype Review', progress: '41%', status: 'Pending' },
 ]
 
+type View = 'dashboard' | 'plan-create'
+
 export default function App() {
+  const [view, setView] = useState<View>('dashboard')
+  const [planName, setPlanName] = useState('')
+  const [planGoal, setPlanGoal] = useState('')
+  const [planCycle, setPlanCycle] = useState('4 weeks')
+  const [saved, setSaved] = useState(false)
+
+  if (view === 'plan-create') {
+    return (
+      <main className="min-h-screen w-full overflow-hidden bg-slate-950 text-slate-100">
+        <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-6 py-10">
+          <section className="w-full rounded-3xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl shadow-black/30">
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">Learning Plan</p>
+                <h1 className="mt-2 text-3xl font-bold text-white">Create Study Plan</h1>
+              </div>
+              <button
+                type="button"
+                onClick={() => setView('dashboard')}
+                className="h-10 rounded-xl border border-white/20 px-4 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/30"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+
+            <form
+              className="space-y-5"
+              onSubmit={(event) => {
+                event.preventDefault()
+                setSaved(true)
+              }}
+              aria-label="Create learning plan form"
+            >
+              <div>
+                <label htmlFor="plan-name" className="mb-2 block text-sm font-medium text-slate-100">Plan Name</label>
+                <input
+                  id="plan-name"
+                  value={planName}
+                  onChange={(event) => setPlanName(event.target.value)}
+                  placeholder="Frontend Engineering Advanced Plan"
+                  className="h-11 w-full rounded-xl border border-white/15 bg-slate-900/70 px-4 text-sm text-white placeholder:text-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="plan-goal" className="mb-2 block text-sm font-medium text-slate-100">Learning Goal</label>
+                <textarea
+                  id="plan-goal"
+                  value={planGoal}
+                  onChange={(event) => setPlanGoal(event.target.value)}
+                  placeholder="Describe your expected skills and outcomes"
+                  className="min-h-[110px] w-full rounded-xl border border-white/15 bg-slate-900/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="plan-cycle" className="mb-2 block text-sm font-medium text-slate-100">Plan Cycle</label>
+                <select
+                  id="plan-cycle"
+                  value={planCycle}
+                  onChange={(event) => setPlanCycle(event.target.value)}
+                  className="h-11 w-full rounded-xl border border-white/15 bg-slate-900/70 px-4 text-sm text-white focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
+                >
+                  <option>2 weeks</option>
+                  <option>4 weeks</option>
+                  <option>8 weeks</option>
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-cyan-300 px-5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/40"
+                >
+                  Save Plan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPlanName('')
+                    setPlanGoal('')
+                    setPlanCycle('4 weeks')
+                    setSaved(false)
+                  }}
+                  className="h-11 rounded-xl border border-white/20 px-5 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/30"
+                >
+                  Reset
+                </button>
+                {saved && (
+                  <p className="text-sm text-emerald-300" role="status" aria-live="polite">
+                    Plan saved. You can continue adding detailed tasks.
+                  </p>
+                )}
+              </div>
+            </form>
+          </section>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen w-full overflow-hidden bg-slate-950 text-slate-100">
       <div className="grid min-h-screen w-full lg:grid-cols-[240px_1fr]">
-        <aside className="hidden border-r border-white/10 bg-white/[0.04] p-5 lg:block" aria-label="课程导航">
+        <aside className="hidden border-r border-white/10 bg-white/[0.04] p-5 lg:block" aria-label="Course navigation">
           <div className="mb-8 flex items-center gap-3">
             <div className="h-10 w-10 rounded-2xl bg-blue-500" aria-hidden="true" />
             <div>
               <p className="font-bold text-white">EduPilot</p>
-              <p className="text-xs text-slate-400">学习控制台</p>
+              <p className="text-xs text-slate-400">Learning Console</p>
             </div>
           </div>
           <nav className="space-y-2">
-            {['总览', '我的课程', '学习计划', '无障碍报告'].map((item) => (
-              <a key={item} href="#" className="block rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/30">
+            {['Overview', 'My Courses', 'Learning Plans', 'A11y Report'].map((item) => (
+              <button
+                type="button"
+                key={item}
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/30"
+              >
                 {item}
-              </a>
+              </button>
             ))}
           </nav>
         </aside>
@@ -129,52 +236,46 @@ export default function App() {
           <div className="mx-auto max-w-6xl">
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="mb-2 text-sm font-semibold uppercase tracking-[0.24em] text-cyan-200">Accessible dashboard</p>
-                <h1 className="text-3xl font-bold tracking-tight text-white">在线教育仪表盘</h1>
+                <p className="mb-2 text-sm font-semibold uppercase tracking-[0.24em] text-cyan-200">Accessible Dashboard</p>
+                <h1 className="text-3xl font-bold tracking-tight text-white">Online Learning Dashboard</h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                  展示学习进度、课程任务和关键统计，包含语义化结构与清晰键盘焦点状态。
+                  Track progress, course tasks, and key metrics with accessible interaction and clear focus states.
                 </p>
               </div>
-              <button className="h-11 rounded-xl bg-cyan-300 px-5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/40">
-                新建学习计划
+              <button
+                type="button"
+                onClick={() => setView('plan-create')}
+                className="h-11 rounded-xl bg-cyan-300 px-5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/40"
+              >
+                New Learning Plan
               </button>
             </header>
 
             <div className="grid gap-4 md:grid-cols-3">
-              {['今日学习 126 分钟', '任务完成 8/10', '无障碍评分 96'].map((metric) => (
+              {['Today 126 minutes', 'Tasks 8/10', 'A11y Score 96'].map((metric) => (
                 <article key={metric} className="rounded-3xl border border-white/10 bg-white/[0.07] p-5 shadow-xl shadow-black/20">
-                  <p className="text-sm text-slate-400">关键指标</p>
+                  <p className="text-sm text-slate-400">Key Metric</p>
                   <p className="mt-2 text-2xl font-bold text-white">{metric}</p>
                 </article>
               ))}
             </div>
 
-            <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
-              <section className="rounded-3xl border border-white/10 bg-white/[0.07] p-5 shadow-xl shadow-black/20" aria-labelledby="course-title">
-                <h2 id="course-title" className="text-lg font-bold text-white">课程进度</h2>
-                <div className="mt-4 space-y-3">
-                  {courses.map((course) => (
-                    <article key={course.title} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <h3 className="font-semibold text-white">{course.title}</h3>
-                          <p className="text-sm text-slate-400">{course.status}</p>
-                        </div>
-                        <span className="rounded-full bg-cyan-300/10 px-3 py-1 text-sm font-bold text-cyan-100">{course.progress}</span>
+            <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.07] p-5 shadow-xl shadow-black/20" aria-labelledby="course-title">
+              <h2 id="course-title" className="text-lg font-bold text-white">Course Progress</h2>
+              <div className="mt-4 space-y-3">
+                {courses.map((course) => (
+                  <article key={course.title} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-semibold text-white">{course.title}</h3>
+                        <p className="text-sm text-slate-400">{course.status}</p>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-
-              <aside className="rounded-3xl border border-white/10 bg-cyan-300 p-5 text-slate-950 shadow-xl shadow-cyan-500/20" aria-label="今日任务">
-                <h2 className="text-lg font-bold">今日任务</h2>
-                <p className="mt-2 text-sm leading-6">完成一个课程复盘，并运行 axe-core 检查生成页面的颜色对比度和表单标签。</p>
-                <button className="mt-6 h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-700/30">
-                  开始任务
-                </button>
-              </aside>
-            </div>
+                      <span className="rounded-full bg-cyan-300/10 px-3 py-1 text-sm font-bold text-cyan-100">{course.progress}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           </div>
         </section>
       </div>
