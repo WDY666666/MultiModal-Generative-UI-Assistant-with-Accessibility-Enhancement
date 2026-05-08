@@ -60,7 +60,6 @@ async def explain_issue(issue_description: str, current_code: str | None = None)
     result = await chat_completion(
         build_issue_explanation_prompt(issue_description, current_code),
         temperature=0.2,
-        max_tokens=500,
     )
     payload = _extract_json_payload(result)
 

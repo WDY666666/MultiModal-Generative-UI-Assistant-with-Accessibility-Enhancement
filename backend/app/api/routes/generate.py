@@ -8,6 +8,7 @@ from app.schemas.response import GenerateResponse
 from app.services.llm_service import chat_completion
 from app.services.prompt_builder import build_generate_prompt, build_syntax_repair_prompt
 from app.services.image_service import analyze_image
+from app.services.planner_service import plan_ui_generation
 from app.services.fallback_templates import build_fallback_code
 from app.services.tailwind_service import compile_tailwind_css
 
@@ -224,7 +225,6 @@ async def _repair_syntax_if_needed(code: str, fallback_code: str | None = None) 
         repaired = await chat_completion(
             build_syntax_repair_prompt(code),
             temperature=0.1,
-            max_tokens=4096,
         )
     except Exception:
         if fallback_code and _is_safe_previewable_code(fallback_code):
@@ -420,8 +420,9 @@ async def generate_code(req: GenerateRequest):
             result = await analyze_image(req.image_base64)
             image_description = result["description"]
 
-        messages = build_generate_prompt(req.prompt, image_description)
-        fallback_code = build_fallback_code(req.prompt)
+        interaction_plan = await plan_ui_generation(req.prompt, image_description=image_description)
+        messages = build_generate_prompt(req.prompt, image_description, interaction_plan)
+        fallback_code = build_fallback_code(req.prompt, interaction_plan)
         llm_error: str | None = None
 
         try:
@@ -462,6 +463,7 @@ async def generate_code(req: GenerateRequest):
             code=code,
             css=compile_tailwind_css(code),
             explanation=explanation,
+            plan=interaction_plan,
         )
     except HTTPException:
         raise

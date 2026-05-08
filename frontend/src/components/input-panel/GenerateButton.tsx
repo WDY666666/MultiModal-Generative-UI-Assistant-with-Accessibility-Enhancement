@@ -20,7 +20,7 @@ export function GenerateButton() {
         {isGenerating ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>正在生成...</span>
+            <span>正在拆解并生成...</span>
           </>
         ) : (
           <>

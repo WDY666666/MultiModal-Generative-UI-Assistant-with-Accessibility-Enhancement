@@ -12,26 +12,12 @@ import type {
   ExplainIssueResponse,
 } from '@/types'
 
-async function post<T>(endpoint: string, body: unknown, timeoutMs = 65000): Promise<T> {
-  const controller = new AbortController()
-  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
-
-  let response: Response
-  try {
-    response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    })
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('请求超时，请稍后重试。')
-    }
-    throw error
-  } finally {
-    window.clearTimeout(timeoutId)
-  }
+async function post<T>(endpoint: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: '请求失败' }))
@@ -42,17 +28,17 @@ async function post<T>(endpoint: string, body: unknown, timeoutMs = 65000): Prom
 
 export const api = {
   generate: (data: GenerateRequest) =>
-    post<GenerateResponse>('/generate', data, 190000),
+    post<GenerateResponse>('/generate', data),
 
   analyzeImage: (data: AnalyzeImageRequest) =>
-    post<AnalyzeImageResponse>('/analyze-image', data, 120000),
+    post<AnalyzeImageResponse>('/analyze-image', data),
 
   chat: (data: ChatRequest) =>
-    post<ChatResponse>('/chat', data, 140000),
+    post<ChatResponse>('/chat', data),
 
   fix: (data: FixRequest) =>
-    post<FixResponse>('/fix', data, 140000),
+    post<FixResponse>('/fix', data),
 
   explainIssue: (data: ExplainIssueRequest) =>
-    post<ExplainIssueResponse>('/a11y/explain', data, 90000),
+    post<ExplainIssueResponse>('/a11y/explain', data),
 }

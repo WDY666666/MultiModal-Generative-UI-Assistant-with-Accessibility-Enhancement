@@ -16,9 +16,11 @@ export function CopilotActions() {
   const previousGeneratedCode = useAppStore((state) => state.previousGeneratedCode)
   const imageDescription = useAppStore((state) => state.imageDescription)
   const imageAnalysis = useAppStore((state) => state.imageAnalysis)
+  const interactionPlan = useAppStore((state) => state.interactionPlan)
   const a11yResults = useAppStore((state) => state.a11yResults)
 
   const setTextPrompt = useAppStore((state) => state.setTextPrompt)
+  const setInteractionPlan = useAppStore((state) => state.setInteractionPlan)
   const restorePreviousGeneratedCode = useAppStore((state) => state.restorePreviousGeneratedCode)
   const updateGeneratedCode = useAppStore((state) => state.updateGeneratedCode)
   const addChatMessages = useAppStore((state) => state.addChatMessages)
@@ -36,11 +38,12 @@ export function CopilotActions() {
         previousGeneratedCodePreview: previousGeneratedCode,
         imageDescription,
         imageAnalysis,
+        interactionPlan,
         a11yScore: a11yResults?.score ?? null,
         a11yViolations: a11yResults?.violations.map(summarizeA11yIssue) ?? [],
       },
     },
-    [textPrompt, generatedCode, previousGeneratedCode, imageDescription, imageAnalysis, a11yResults]
+    [textPrompt, generatedCode, previousGeneratedCode, imageDescription, imageAnalysis, interactionPlan, a11yResults]
   )
 
   useCopilotAction(
@@ -70,6 +73,7 @@ export function CopilotActions() {
           const candidateCode = extractCodeFromResponse(response.code)
           const code = isPreviewableReactCode(candidateCode) ? candidateCode : DEFAULT_GENERATED_CODE
           updateGeneratedCode(code, response.css)
+          setInteractionPlan(response.plan ?? null)
           addChatMessages([
             { role: 'user', content: normalizedPrompt },
             { role: 'assistant', content: response.explanation || 'CopilotKit action 已生成代码，请在预览区查看效果。' },
@@ -84,7 +88,7 @@ export function CopilotActions() {
         }
       },
     },
-    [setTextPrompt, setIsGenerating, setGenerationError, updateGeneratedCode, addChatMessages]
+    [setTextPrompt, setIsGenerating, setGenerationError, updateGeneratedCode, setInteractionPlan, addChatMessages]
   )
 
   useCopilotAction(
@@ -95,7 +99,7 @@ export function CopilotActions() {
         {
           name: 'instruction',
           type: 'string',
-          description: '需要修改的内容，例如颜色、布局、动画、文案或无障碍行为。',
+          description: '需要修改的内容，例如颜色、布局、动画、文案、跳转或弹窗流程。',
           required: true,
         },
       ],

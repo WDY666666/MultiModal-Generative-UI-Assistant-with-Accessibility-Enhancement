@@ -21,13 +21,42 @@ export function fileToBase64(file: File): Promise<string> {
   })
 }
 
-export function extractCodeFromResponse(text: string): string {
-  const codeBlockRegex = /```(?:tsx?|jsx?|react)?\n([\s\S]*?)```/
-  const match = text.match(codeBlockRegex)
-  if (match) {
-    return match[1].trim()
+function hasReactEntryPoint(text: string): boolean {
+  return /export\s+default/.test(text) && (/<[A-Za-z][\w.-]*(?:\s|>|\/)/.test(text) || text.includes('<>'))
+}
+
+function sliceProbableReactCode(text: string): string {
+  const exportMatches = Array.from(text.matchAll(/export\s+default/g))
+  if (exportMatches.length === 0) {
+    return text.trim()
   }
-  return text.trim()
+
+  const exportIndex = exportMatches[exportMatches.length - 1].index ?? 0
+  const importIndex = text.lastIndexOf('\nimport ', exportIndex)
+  const typeImportIndex = text.lastIndexOf('\nimport type ', exportIndex)
+  const startIndex = Math.max(importIndex, typeImportIndex)
+  const candidateStart = startIndex >= 0 ? startIndex + 1 : exportIndex
+
+  return text.slice(candidateStart).trim()
+}
+
+export function extractCodeFromResponse(text: string): string {
+  const normalized = text.replace(/<!--\s*MMUI_APPLY_CODE\s*-->/g, '').trim()
+  const codeBlockRegex = /```(?:tsx?|jsx?|typescript|javascript|react)?\s*\n?([\s\S]*?)```/gi
+  const blocks = Array.from(normalized.matchAll(codeBlockRegex))
+    .map((match) => match[1]?.trim() ?? '')
+    .filter(Boolean)
+
+  const previewableBlock = [...blocks].reverse().find(hasReactEntryPoint)
+  if (previewableBlock) {
+    return previewableBlock
+  }
+
+  if (blocks.length > 0) {
+    return blocks[blocks.length - 1]
+  }
+
+  return sliceProbableReactCode(normalized)
 }
 
 export function isPreviewableReactCode(code: string): boolean {

@@ -64,7 +64,7 @@ async def analyze_image(image_base64: str) -> dict:
         }
     )
 
-    result = await vision_completion(messages, temperature=0.2, max_tokens=800)
+    result = await vision_completion(messages, temperature=0.2)
     payload = _extract_json_payload(result)
 
     description = str(payload.get("description") or result).strip()

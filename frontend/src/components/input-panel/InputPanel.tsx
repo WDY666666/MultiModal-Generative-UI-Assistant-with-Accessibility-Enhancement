@@ -2,6 +2,7 @@
 import { ImageUpload } from './ImageUpload'
 import { GenerateButton } from './GenerateButton'
 import { DemoPrompts } from './DemoPrompts'
+import { InteractionPlanCard } from './InteractionPlanCard'
 
 export function InputPanel() {
   return (
@@ -16,6 +17,7 @@ export function InputPanel() {
       <TextInput />
       <ImageUpload />
       <GenerateButton />
+      <InteractionPlanCard />
 
       <div className="mt-auto pt-4 border-t border-border">
         <DemoPrompts />

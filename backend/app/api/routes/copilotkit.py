@@ -150,11 +150,12 @@ async def _build_agent_reply(payload: dict[str, Any]) -> str:
                 [m for m in messages if m.get("role") in {"user", "assistant"}],
             )
             candidate = _strip_code_fence(
-                await chat_completion(iter_messages, temperature=0.25, max_tokens=2400)
+                await chat_completion(iter_messages, temperature=0.25)
             )
             if _is_previewable_code(candidate):
                 return (
-                    "已基于当前工作区代码生成可预览的更新版本。如下代码可直接应用到中间预览区：\n\n"
+                    "已基于当前工作区代码生成可预览的更新版本。如下代码会自动应用到中间预览区：\n\n"
+                    "<!-- MMUI_APPLY_CODE -->\n"
                     f"```tsx\n{candidate}\n```"
                 )
         except Exception:
@@ -171,7 +172,7 @@ async def _build_agent_reply(payload: dict[str, Any]) -> str:
         ),
     }
     try:
-        return await chat_completion([system_message, *messages], temperature=0.4, max_tokens=1024)
+        return await chat_completion([system_message, *messages], temperature=0.4)
     except Exception:
         return "Copilot 运行时已连接，但模型请求失败。请检查模型地址、密钥与网络状态。"
 

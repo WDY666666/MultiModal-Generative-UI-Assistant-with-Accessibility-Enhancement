@@ -7,10 +7,23 @@ class ApiModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class InteractionPlan(ApiModel):
+    summary: str
+    page_type: str = Field(alias="pageType")
+    navigation_mode: str = Field(alias="navigationMode")
+    implementation_strategy: str = Field(alias="implementationStrategy")
+    primary_views: list[str] = Field(default_factory=list, alias="primaryViews")
+    popup_views: list[str] = Field(default_factory=list, alias="popupViews")
+    routes: list[str] = Field(default_factory=list)
+    user_flows: list[str] = Field(default_factory=list, alias="userFlows")
+    task_breakdown: list[str] = Field(default_factory=list, alias="taskBreakdown")
+
+
 class GenerateResponse(ApiModel):
     code: str
     explanation: Optional[str] = None
     css: Optional[str] = None
+    plan: Optional[InteractionPlan] = None
 
 
 class AnalyzeImageResponse(ApiModel):
@@ -26,6 +39,7 @@ class ChatResponse(ApiModel):
     code: str
     reply: str
     css: Optional[str] = None
+    plan: Optional[InteractionPlan] = None
 
 
 class FixResponse(ApiModel):

@@ -1,17 +1,9 @@
 import { create } from 'zustand'
 
 import { api } from '@/services/api'
-import {
-  DEFAULT_GENERATED_CODE,
-  DEFAULT_PREVIEW_CSS,
-} from '@/lib/constants'
-import {
-  extractCodeFromResponse,
-  fileToBase64,
-  generateId,
-  isPreviewableReactCode,
-} from '@/lib/utils'
-import type { A11yResults, ChatMessage, ImageAnalysis } from '@/types'
+import { DEFAULT_GENERATED_CODE, DEFAULT_PREVIEW_CSS } from '@/lib/constants'
+import { extractCodeFromResponse, fileToBase64, generateId, isPreviewableReactCode } from '@/lib/utils'
+import type { A11yResults, ChatMessage, ImageAnalysis, InteractionPlan } from '@/types'
 
 interface AppState {
   textPrompt: string
@@ -19,6 +11,7 @@ interface AppState {
   imagePreview: string | null
   imageDescription: string
   imageAnalysis: ImageAnalysis | null
+  interactionPlan: InteractionPlan | null
 
   generatedCode: string
   generatedCss: string
@@ -37,6 +30,7 @@ interface AppState {
   setUploadedImage: (file: File | null) => void
   setImageDescription: (desc: string) => void
   setImageAnalysis: (analysis: ImageAnalysis | null) => void
+  setInteractionPlan: (plan: InteractionPlan | null) => void
   generate: () => Promise<void>
   sendMessage: (message: string) => Promise<void>
   setA11yResults: (results: A11yResults) => void
@@ -67,6 +61,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   imagePreview: null,
   imageDescription: '',
   imageAnalysis: null,
+  interactionPlan: null,
 
   generatedCode: DEFAULT_GENERATED_CODE,
   generatedCss: DEFAULT_PREVIEW_CSS,
@@ -109,6 +104,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setImageDescription: (desc) => set({ imageDescription: desc }),
   setImageAnalysis: (analysis) => set({ imageAnalysis: analysis }),
+  setInteractionPlan: (plan) => set({ interactionPlan: plan }),
 
   generate: async () => {
     const { textPrompt, uploadedImage, imageDescription, updateGeneratedCode } = get()
@@ -143,6 +139,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         isGenerating: false,
         generationError: null,
         a11yResults: null,
+        interactionPlan: response.plan ?? null,
         chatMessages: appendMessages(get().chatMessages, [
           { role: 'user', content: textPrompt || '[基于图片的生成请求]' },
           { role: 'assistant', content: assistantContent },
@@ -188,6 +185,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         isChatLoading: false,
         a11yResults: null,
+        interactionPlan: response.plan ?? get().interactionPlan,
         chatMessages: appendMessages(get().chatMessages, [{ role: 'assistant', content: reply }]),
       })
     } catch (error) {

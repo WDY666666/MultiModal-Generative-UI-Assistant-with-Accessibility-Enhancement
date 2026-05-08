@@ -2,7 +2,7 @@
 
 from app.config import get_settings
 
-LLM_TIMEOUT = httpx.Timeout(90.0, connect=10.0)
+LLM_TIMEOUT = httpx.Timeout(None, connect=30.0)
 
 
 def _chat_completions_url() -> str:
@@ -22,22 +22,24 @@ async def chat_completion(
     messages: list[dict],
     model: str | None = None,
     temperature: float = 0.7,
-    max_tokens: int = 1200,
+    max_tokens: int | None = None,
 ) -> str:
     settings = get_settings()
     payload = {
         "model": model or settings.openai_model,
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": max_tokens,
     }
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
+
     try:
         async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
             response = await client.post(_chat_completions_url(), headers=_headers(), json=payload)
             response.raise_for_status()
             data = response.json()
     except httpx.TimeoutException as exc:
-        raise RuntimeError("LLM request timed out (90s). Please retry or use a faster model.") from exc
+        raise RuntimeError("LLM request timed out. Please retry or use a faster model.") from exc
     except httpx.HTTPStatusError as exc:
         detail = ""
         try:
@@ -57,7 +59,7 @@ async def vision_completion(
     messages: list[dict],
     model: str | None = None,
     temperature: float = 0.7,
-    max_tokens: int = 2048,
+    max_tokens: int | None = None,
 ) -> str:
     return await chat_completion(
         messages=messages,

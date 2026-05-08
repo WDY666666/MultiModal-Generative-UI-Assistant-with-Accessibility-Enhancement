@@ -40,10 +40,23 @@ export interface GenerateRequest {
   chatHistory?: ChatMessage[]
 }
 
+export interface InteractionPlan {
+  summary: string
+  pageType: string
+  navigationMode: string
+  implementationStrategy: string
+  primaryViews: string[]
+  popupViews: string[]
+  routes: string[]
+  userFlows: string[]
+  taskBreakdown: string[]
+}
+
 export interface GenerateResponse {
   code: string
   explanation?: string
   css?: string
+  plan?: InteractionPlan
 }
 
 export interface AnalyzeImageRequest {
@@ -63,6 +76,7 @@ export interface ChatResponse {
   code: string
   reply: string
   css?: string
+  plan?: InteractionPlan
 }
 
 export interface FixRequest {

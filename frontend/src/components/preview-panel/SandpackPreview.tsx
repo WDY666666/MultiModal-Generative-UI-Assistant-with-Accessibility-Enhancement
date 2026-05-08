@@ -21,6 +21,12 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+model-viewer {
+  display: block;
+  width: 100%;
+  min-height: 280px;
 }`
 
 declare global {
@@ -33,6 +39,7 @@ declare global {
 
 const REACT_EVENT_TYPES = ['FormEvent', 'ChangeEvent', 'MouseEvent', 'KeyboardEvent'] as const
 const MIN_RENDERED_HTML_LENGTH = 40
+const MODEL_VIEWER_SRC = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js'
 
 type ReactEventType = (typeof REACT_EVENT_TYPES)[number]
 
@@ -121,15 +128,23 @@ function escapeInlineScript(code: string) {
   return code.replace(/<\\\//g, '<\\\\/').replace(/<\/script/gi, '<\\/script')
 }
 
-function buildPreviewDocument(runtimeScript: string, css: string) {
+function usesModelViewer(code: string) {
+  return /<model-viewer(?:\s|>|\/)/i.test(code)
+}
+
+function buildPreviewDocument(runtimeScript: string, css: string, enableModelViewer = false) {
   const safeScript = escapeInlineScript(runtimeScript)
+  const modelViewerScript = enableModelViewer
+    ? `<script type="module" src="${MODEL_VIEWER_SRC}"></script>`
+    : ''
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>${css || BASE_CSS}</style>
+    ${modelViewerScript}
   </head>
   <body>
     <div id="root"></div>
@@ -340,15 +355,16 @@ export function SandpackPreview() {
 
   const previewState = useMemo(() => {
     const { script, diagnostics } = compilePreviewRuntime(generatedCode)
+    const enableModelViewer = usesModelViewer(generatedCode)
     if (diagnostics.length > 0) {
       return {
-        srcDoc: buildPreviewDocument('', BASE_CSS),
+        srcDoc: buildPreviewDocument('', BASE_CSS, enableModelViewer),
         diagnostics,
       }
     }
 
     return {
-      srcDoc: buildPreviewDocument(buildRuntimeScript(script), generatedCss || BASE_CSS),
+      srcDoc: buildPreviewDocument(buildRuntimeScript(script), generatedCss || BASE_CSS, enableModelViewer),
       diagnostics: [] as string[],
     }
   }, [generatedCode, generatedCss])
